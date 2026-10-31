@@ -256,6 +256,12 @@ details.attendance .add-form { margin: 8px 0 0; }
 .entry-foot { margin-top: 10px; max-width: 110ch; font-size: 13px; }
 .entry-foot p { margin-bottom: 4px; }
 .entry-warn { color: var(--warn); font-weight: 600; }
+.entry-explain { font-size: 12px; color: var(--muted); margin: 0 0 8px; line-height: 1.4; }
+.entry-explain p { margin: 0 0 3px; }
+.entry-rule { margin: 0 0 8px; }
+.entry-rule p { margin: 2px 0 0; }
+.entry-general summary { font-size: 13px; color: var(--felt); padding: 2px 0; }
+.k { font-weight: 600; color: var(--muted); }
 
 /* Výsledek zápasu */
 .tag { display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; vertical-align: 1px; }
@@ -304,11 +310,6 @@ tr.clickable:hover td { background: var(--felt-soft); }
 .solo-block { margin-top: 12px; }
 .solo-block .note { margin-bottom: 2px; }
 
-/* ── Vysvětlivky ────────────────────────────────────────── */
-details.explanations { margin-top: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 0 14px; }
-details.explanations[open] { padding-bottom: 12px; }
-.disc { border-top: 1px solid var(--line); padding: 8px 0 4px; max-width: 90ch; }
-.disc .k { font-weight: 600; color: var(--muted); }
 
 /* ── Mobil (nouzově) ────────────────────────────────────── */
 @media (max-width: 767px) {

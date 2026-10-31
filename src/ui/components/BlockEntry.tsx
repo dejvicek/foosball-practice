@@ -1,4 +1,5 @@
-import { EXPLANATIONS } from '../../domain/content';
+import type { ExplanationItem } from '../../domain/content';
+import { explanationsFor } from '../../domain/explain';
 import { parseScoreValue } from '../../domain/standings';
 import { soloMetric } from '../../domain/solo';
 import type { MatchId, PlayerId, ScheduleRow, Score, SoloMetric, Training } from '../../domain/types';
@@ -13,28 +14,23 @@ interface Props {
   onSolo(playerId: PlayerId, metric: SoloMetric, value: number | null): void;
 }
 
-const ROUND_RULE = ['Normální leg', 'Daň za ztrátu', 'Zeď', 'Zeď', 'Start 0:3', 'Start 4:4', 'Start 5:5, o 2 góly, strop 10'];
-
-function explanation(name: string): string[] {
-  for (const g of EXPLANATIONS) {
-    const it = g.items.find((i) => i.name === name);
-    if (it) return it.parts.map((p) => (p.label ? `${p.label} ${p.text}` : p.text));
-  }
-  return [];
-}
-
-function ruleTexts(row: ScheduleRow): string[] {
-  const m = row.cells.find((c) => c?.type === 'match');
-  if (!m || m.type !== 'match') return [];
-  if (m.match.block === 'sim') return explanation('Simulace ligového kola');
-  const out = explanation(ROUND_RULE[m.match.round - 1] ?? '');
-  if (m.match.round === 5) out.push(...explanation('Daň za ztrátu'));
-  return out;
+function ItemText({ item, skipCounting = false }: { item: ExplanationItem; skipCounting?: boolean }) {
+  return (
+    <>
+      {item.parts
+        .filter((p) => !(skipCounting && p.label === 'Počítá se:'))
+        .map((p, i) => (
+          <p key={i}>
+            {p.label && <span className="k">{p.label}</span>} {p.text}
+          </p>
+        ))}
+    </>
+  );
 }
 
 export function BlockEntry({ row, waitingLabel, training, names, onScore, onSolo }: Props) {
   const nm = (ids: PlayerId[]) => ids.map((id) => names[id] ?? '?').join(' + ');
-  const rules = ruleTexts(row);
+  const ex = explanationsFor(row);
   const scenario = /^Start /.test(row.rule ?? '');
   return (
     <div className="block-entry">
@@ -84,6 +80,11 @@ export function BlockEntry({ row, waitingLabel, training, names, onScore, onSolo
                 <strong>{def.name}</strong>
                 <span>{def.what}</span>
               </div>
+              {ex.perTable[j] && (
+                <div className="entry-explain">
+                  <ItemText item={ex.perTable[j]!} skipCounting />
+                </div>
+              )}
               {c.players.map((p) => {
                 const v = training.soloResults[p]?.[c.metric!];
                 return (
@@ -112,9 +113,23 @@ export function BlockEntry({ row, waitingLabel, training, names, onScore, onSolo
       </div>
       <div className="entry-foot">
         {scenario && <p className="entry-warn">Zapiš konečný stav na stole, startovní góly appka odečte sama.</p>}
-        {rules.map((r, i) => (
-          <p key={i}>{r}</p>
+        {ex.main.map((it) => (
+          <div key={it.name} className="entry-rule">
+            <strong>{it.name}</strong>
+            <ItemText item={it} />
+          </div>
         ))}
+        {ex.general.length > 0 && (
+          <details className="entry-general">
+            <summary>Obecná pravidla: {ex.general.map((g) => g.name.toLocaleLowerCase('cs')).join(', ')}</summary>
+            {ex.general.map((it) => (
+              <div key={it.name} className="entry-rule">
+                <strong>{it.name}</strong>
+                <ItemText item={it} />
+              </div>
+            ))}
+          </details>
+        )}
         {row.waiting.length > 0 && (
           <p className="muted">
             {waitingLabel}: {row.waiting.map((p) => names[p] ?? '?').join(', ')}

@@ -187,6 +187,20 @@ describe('tabulka tréninku', () => {
     );
   });
 
+  it('vysvětlivky jsou u bloku, samostatná sekce Vysvětlivky není', async () => {
+    const user = userEvent.setup();
+    render(<App repo={memoryRepository({ players: players(8), trainings: [training(8, 'team', 4)] })} />);
+    await screen.findByRole('table', { name: 'Rozpis tréninku' });
+    expect(screen.queryByText('Vysvětlivky: stanoviště, pravidla a scénáře')).toBeNull();
+    await user.click(screen.getByRole('button', { name: /^Stanoviště, rotace 1/ }));
+    const card = screen.getByRole('group', { name: 'Stanoviště, rotace 1, stůl 1' });
+    expect(card).toHaveTextContent('Teprve po třetím zastavení smí přihrát na trojku');
+    await user.click(screen.getByRole('button', { name: /^Kolo 1/ }));
+    const entry = screen.getByRole('group', { name: 'Kolo 1, stůl 1' }).closest<HTMLElement>('.block-entry')!;
+    expect(entry).toHaveTextContent('Leg do 6 bez dalších pravidel');
+    expect(within(entry).getByText('Obecná pravidla: každý gól se počítá, role rozhodčího')).toBeInTheDocument();
+  });
+
   it('jedničky n=5: v kole 1 počítá H5', async () => {
     render(<App repo={memoryRepository({ players: players(5), trainings: [training(5, 'single', 2)] })} />);
     await screen.findByRole('table', { name: 'Rozpis tréninku' });

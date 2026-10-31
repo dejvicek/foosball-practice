@@ -4,7 +4,6 @@ import { buildSchedule, canBuildSchedule } from '../../domain/schedule';
 import { reconcileTeams } from '../../domain/simulation';
 import { lostEntries, pruneEntries, toggleAttendee, type LostEntries } from '../../domain/training';
 import type { Training } from '../../domain/types';
-import { Explanations } from '../components/Explanations';
 import { TrainingTable } from '../components/TrainingTable';
 import { currentRow, defaultOpenRow, minutesSinceStart, rowKey, useNow } from '../now';
 import { StandingsView } from '../components/StandingsView';
@@ -126,7 +125,6 @@ export function TrainingPage({ store, id, navigate }: { store: AppStore; id: str
               Vytisknout rozpis
             </button>
           </div>
-          <Explanations />
           <StandingsView
             schedule={schedule}
             scores={training.scores}
