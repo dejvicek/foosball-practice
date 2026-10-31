@@ -1,0 +1,98 @@
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { App } from '../App';
+import { memoryRepository } from '../../storage/memoryRepository';
+import type { Player } from '../../domain/types';
+import { scoreFor, training } from '../../test/fixtures';
+
+const ids = ['X', 'Y', 'P2', 'P3', 'P4', 'Q2', 'Q3', 'Q4', 'R2', 'R3', 'R4'];
+const players: Player[] = ids.map((id, order) => ({
+  id,
+  name: id === 'X' ? 'Xaver' : id === 'Y' ? 'Yvona' : id,
+  order,
+  archived: false,
+}));
+const t1 = scoreFor(training('t1', '2026-10-20', 'team', ['X', 'P2', 'P3', 'P4']), 'X', [
+  [6, 1], [6, 3], [6, 4], [6, 5], [3, 6], [5, 6], [5, 6],
+]);
+const t2 = scoreFor(training('t2', '2026-10-25', 'single', ['X', 'Q2', 'Q3', 'Q4'], 2), 'X', [
+  [6, 4], [6, 5], [5, 6], [5, 6], [4, 6],
+]);
+const t3 = scoreFor(training('t3', '2026-10-28', 'team', ['Y', 'R2', 'R3', 'R4']), 'Y', [
+  [6, 0], [6, 1], [6, 4], [4, 6], [5, 6], [5, 6], [6, 5],
+]);
+const repo = () => memoryRepository({ players, trainings: [t1, t2, t3] });
+const rowOf = (table: HTMLElement, name: string) =>
+  within(table).getAllByRole('row').findIndex((r) => r.textContent?.includes(name));
+
+beforeEach(() => {
+  localStorage.clear();
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-10-31T12:00:00'));
+  window.location.hash = '#/zebricek';
+});
+afterEach(() => vi.useRealTimers());
+
+describe('stránka Žebříček', () => {
+  it('Forma + Průměr: X s +0,4 a 50 %, Y v „Málo dat“; Celkem: Y nad X', async () => {
+    const user = userEvent.setup();
+    render(<App repo={repo()} />);
+    const table = await screen.findByRole('table', { name: 'Žebříček' });
+    expect(screen.getByText('4. 10. – 31. 10. 2026')).toBeInTheDocument();
+    const xRow = within(table).getAllByRole('row')[rowOf(table, 'Xaver')];
+    expect(xRow).toHaveTextContent('+0,4');
+    expect(xRow).toHaveTextContent('50 %');
+    expect(rowOf(table, 'Yvona')).toBe(-1);
+    const low = screen.getByRole('table', { name: 'Málo dat' });
+    expect(rowOf(low, 'Yvona')).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole('button', { name: 'Celkem' }));
+    const total = screen.getByRole('table', { name: 'Žebříček' });
+    expect(rowOf(total, 'Yvona')).toBeLessThan(rowOf(total, 'Xaver'));
+    expect(screen.queryByRole('table', { name: 'Málo dat' })).not.toBeInTheDocument();
+  });
+
+  it('volby se pamatují po novém otevření', async () => {
+    const user = userEvent.setup();
+    const r = repo();
+    const { unmount } = render(<App repo={r} />);
+    await screen.findByRole('table', { name: 'Žebříček' });
+    await user.click(screen.getByRole('button', { name: 'Celkově' }));
+    await user.click(screen.getByRole('button', { name: 'Celkem' }));
+    unmount();
+    render(<App repo={r} />);
+    await screen.findByRole('table', { name: 'Žebříček' });
+    expect(screen.getByRole('button', { name: 'Celkově' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Celkem' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('vlastní období od–do', async () => {
+    const user = userEvent.setup();
+    render(<App repo={repo()} />);
+    await screen.findByRole('table', { name: 'Žebříček' });
+    await user.click(screen.getByRole('button', { name: 'Od–do' }));
+    fireEvent.change(screen.getByLabelText('Od'), { target: { value: '2026-10-21' } });
+    // t1 (20. 10.) vypadne → X má jen 1 trénink → v Průměru „málo dat“
+    expect(rowOf(screen.getByRole('table', { name: 'Málo dat' }), 'Xaver')).toBeGreaterThan(0);
+  });
+
+  it('detail hráče: tréninky nejnovější první, odkaz na trénink', async () => {
+    const user = userEvent.setup();
+    render(<App repo={repo()} />);
+    await screen.findByRole('table', { name: 'Žebříček' });
+    await user.click(screen.getByRole('button', { name: 'Xaver' }));
+    expect(await screen.findByRole('heading', { name: 'Xaver' })).toBeInTheDocument();
+    const rows = within(screen.getByRole('table', { name: 'Tréninky hráče' })).getAllByRole('row').slice(1);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent('25. 10. 2026');
+    expect(rows[1]).toHaveTextContent('+6');
+    await user.click(rows[0]);
+    expect(window.location.hash).toBe('#/trenink/t2');
+  });
+
+  it('prázdné období', async () => {
+    window.location.hash = '#/zebricek';
+    render(<App repo={memoryRepository()} />);
+    expect(await screen.findByText('V tomhle období zatím nejsou žádné zapsané legy.')).toBeInTheDocument();
+  });
+});

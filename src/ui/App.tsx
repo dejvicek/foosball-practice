@@ -1,5 +1,9 @@
+import { useState } from 'react';
+import { loadPrefs, savePrefs, type UiPrefs } from '../storage/prefs';
 import type { Repository } from '../storage/repository';
 import { BottomNav } from './components/BottomNav';
+import { LadderPage } from './pages/LadderPage';
+import { PlayerPage } from './pages/PlayerPage';
 import { PlayersPage } from './pages/PlayersPage';
 import { TrainingPage } from './pages/TrainingPage';
 import { TrainingsPage } from './pages/TrainingsPage';
@@ -9,6 +13,11 @@ import { useHashRoute } from './useHashRoute';
 export function App({ repo }: { repo: Repository }) {
   const store = useAppState(repo);
   const [route, navigate] = useHashRoute();
+  const [prefs, setPrefsState] = useState<UiPrefs>(loadPrefs);
+  const setPrefs = (p: UiPrefs) => {
+    setPrefsState(p);
+    savePrefs(p);
+  };
 
   let body: React.ReactNode;
   if (store.status === 'loading') body = <p className="note">Načítám…</p>;
@@ -24,7 +33,8 @@ export function App({ repo }: { repo: Repository }) {
   else if (route.page === 'players') body = <PlayersPage store={store} />;
   else if (route.page === 'trainings') body = <TrainingsPage store={store} navigate={navigate} />;
   else if (route.page === 'training') body = <TrainingPage key={route.id} store={store} id={route.id} navigate={navigate} />;
-  else body = <p className="note">Připravuje se.</p>;
+  else if (route.page === 'ladder') body = <LadderPage store={store} prefs={prefs} setPrefs={setPrefs} navigate={navigate} />;
+  else body = <PlayerPage store={store} id={route.id} prefs={prefs} navigate={navigate} />;
 
   return (
     <>
