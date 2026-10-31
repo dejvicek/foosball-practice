@@ -22,7 +22,7 @@ describe('rozpis se zápisem skóre', () => {
 
     const cell = await screen.findByRole('group', { name: 'Kolo 1, stůl 1' });
     expect(cell).toHaveTextContent('H1 + H2 vs H3 + H4');
-    const row = cell.closest('tr')!;
+    const row = cell.closest<HTMLElement>('[data-row]')!;
     expect(within(row).getByText('1:00')).toBeInTheDocument();
 
     const left = within(cell).getByLabelText('Kolo 1, stůl 1: góly vlevo');
@@ -44,12 +44,16 @@ describe('rozpis se zápisem skóre', () => {
     expect(within(again).getByLabelText('Kolo 1, stůl 1: góly vlevo')).toHaveValue(6);
   });
 
-  it('jedničky n=5, t=2: sloupec „Počítá“, v kole 1 počítá H5', async () => {
+  it('jedničky n=5, t=2: v kole 1 počítá H5', async () => {
     render(<App repo={memoryRepository({ players: players(5), trainings: [training(5, 'single', 2)] })} />);
     const cell = await screen.findByRole('group', { name: 'Kolo 1, stůl 1' });
-    const table = cell.closest('table')!;
-    expect(within(table).getByRole('columnheader', { name: 'Počítá' })).toBeInTheDocument();
-    expect(within(cell.closest('tr')!).getByText('H5')).toBeInTheDocument();
+    expect(within(cell.closest<HTMLElement>('[data-row]')!).getByText('Počítá: H5')).toBeInTheDocument();
+  });
+
+  it('n=8, t=4: kolo 1 ukazuje volné stoly 3 a 4', async () => {
+    render(<App repo={memoryRepository({ players: players(8), trainings: [training(8, 'team', 4)] })} />);
+    const cell = await screen.findByRole('group', { name: 'Kolo 1, stůl 1' });
+    expect(within(cell.closest<HTMLElement>('[data-row]')!).getByText('Volné stoly: 3, 4')).toBeInTheDocument();
   });
 
   it('vysvětlivky a poznámka o scénářových startech', async () => {

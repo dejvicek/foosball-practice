@@ -12,9 +12,10 @@ const one = new Intl.NumberFormat('cs-CZ', { minimumFractionDigits: 1, maximumFr
 
 /** 0.4166 → „0,4“; se znaménkem → „+0,4“ */
 export function dec1(v: number, signed = false): string {
-  const s = one.format(v);
+  const s = one.format(Math.abs(v));
+  if (v < 0 && s !== '0,0') return `\u2212${s}`;
   return signed && v > 0 ? `+${s}` : s;
 }
 
 export const pct = (v: number): string => `${Math.round(v * 100)} %`;
-export const signed = (v: number): string => (v > 0 ? `+${v}` : String(v));
+export const signed = (v: number): string => (v > 0 ? `+${v}` : v < 0 ? `\u2212${-v}` : '0');

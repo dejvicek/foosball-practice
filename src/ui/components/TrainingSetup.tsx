@@ -91,7 +91,7 @@ export function TrainingSetup({ training, players, onChange, onAddPlayer }: Prop
         >
           <label htmlFor="t-new-player">Jméno nového hráče</label>
           <div className="add-row">
-            <input id="t-new-player" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" placeholder="+ Přidat hráče" />
+            <input id="t-new-player" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" />
             <button type="submit">Přidat a zaškrtnout</button>
           </div>
           {error && <p className="error">{error}</p>}

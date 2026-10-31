@@ -57,11 +57,11 @@ export function TrainingPage({ store, id, navigate }: { store: AppStore; id: str
 
   return (
     <section>
-      <button type="button" className="ghost no-print" onClick={() => navigate({ page: 'trainings' })}>
-        ← Všechny tréninky
+      <button type="button" className="back no-print" onClick={() => navigate({ page: 'trainings' })}>
+        Zpět na tréninky
       </button>
       <h1>{formatDateLong(training.date)}</h1>
-      <p className="lead">{MODE_LABEL[training.mode]}</p>
+      <p className="dateline">{MODE_LABEL[training.mode]}</p>
 
       <TrainingSetup training={training} players={store.data.players} onChange={apply} onAddPlayer={onAddPlayer} />
 

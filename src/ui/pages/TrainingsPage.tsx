@@ -32,7 +32,7 @@ export function TrainingsPage({ store, navigate }: { store: AppStore; navigate: 
                 <button type="button" onClick={() => navigate({ page: 'training', id: t.id })}>
                   <span>{formatDateLong(t.date)}</span>
                   <span className="sub">
-                    {MODE_LABEL[t.mode]} · {n} {plural(n, 'hráč', 'hráči', 'hráčů')}
+                    {MODE_LABEL[t.mode]}, {n} {plural(n, 'hráč', 'hráči', 'hráčů')}
                   </span>
                 </button>
               </li>

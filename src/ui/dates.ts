@@ -6,15 +6,16 @@ export function todayIso(now: Date = new Date()): string {
   return `${y}-${m}-${d}`;
 }
 
-/** „pá 31. 10. 2026“ */
+/** „Pátek 31. října 2026“ */
 export function formatDateLong(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('cs-CZ', {
-    weekday: 'short',
+  const s = new Date(y, m - 1, d).toLocaleDateString('cs-CZ', {
+    weekday: 'long',
     day: 'numeric',
-    month: 'numeric',
+    month: 'long',
     year: 'numeric',
   });
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 /** „31. 10. 2026“ */

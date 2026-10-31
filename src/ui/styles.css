@@ -1,170 +1,325 @@
+/*
+  Výsledkový servis – vzhled sportovních novin.
+  Papír, tiskařská čerň, novinová červená. Jediný výrazný prvek: skóre v políčkách.
+*/
 :root {
-  --bg: #f7f7f4; --paper: #ffffff; --ink: #161a17; --muted: #5a6460; --line: #d6dbd7;
-  --felt: #1f5a3f; --felt-ink: #ffffff; --ball: #f2c94c; --red: #b8322b; --wait: #eef0ec;
-  --nav-h: 60px;
+  --paper: #fbfaf7;
+  --ink: #000;
+  --muted: #6b6b66;
+  --rule: #d9d8d2;
+  --red: #d0121b;
+  --field: #fff;
+  --nav-h: 58px;
+  --sans: 'Archivo', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #141816; --paper: #1c211e; --ink: #eef1ee; --muted: #a4ada8; --line: #334039;
-    --felt: #2e7a57; --felt-ink: #f4fbf6; --ball: #e6be45; --red: #e0645c; --wait: #232a26;
+    --paper: #1a1916;
+    --ink: #efede6;
+    --muted: #9d9b93;
+    --rule: #3a3934;
+    --red: #ff4b4b;
+    --field: #24231f;
     color-scheme: dark;
   }
 }
 :root[data-theme='dark'] {
-  --bg: #141816; --paper: #1c211e; --ink: #eef1ee; --muted: #a4ada8; --line: #334039;
-  --felt: #2e7a57; --felt-ink: #f4fbf6; --ball: #e6be45; --red: #e0645c; --wait: #232a26;
+  --paper: #1a1916;
+  --ink: #efede6;
+  --muted: #9d9b93;
+  --rule: #3a3934;
+  --red: #ff4b4b;
+  --field: #24231f;
   color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body {
-  margin: 0; background: var(--bg); color: var(--ink);
-  font-family: 'Barlow', 'Segoe UI', Roboto, Arial, sans-serif; font-size: 16px; line-height: 1.45;
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.4;
   overflow-x: hidden;
+  font-variant-numeric: tabular-nums;
 }
-h1, h2, h3, h4 { font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; line-height: 1.05; margin: 0; }
-h1 { font-size: clamp(34px, 8vw, 52px); font-weight: 700; margin-bottom: 6px; }
-h2 { font-size: 28px; font-weight: 700; margin: 32px 0 10px; }
-h3 { font-size: 22px; font-weight: 700; margin: 20px 0 8px; }
 p { margin: 0 0 10px; }
-a { color: var(--felt); }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
 
-.page { max-width: 960px; margin: 0 auto; padding: 20px 16px calc(var(--nav-h) + 32px); }
-.lead { color: var(--muted); font-size: 17px; max-width: 62ch; }
-.note { color: var(--muted); font-size: 14px; margin-bottom: 14px; }
+/* ── Typografie ─────────────────────────────────────────── */
+h1, h2, h3, h4 { margin: 0; font-family: var(--sans); font-weight: 900; line-height: 0.95; }
+h1 {
+  font-stretch: 62%;
+  font-size: clamp(44px, 13vw, 76px);
+  letter-spacing: -0.01em;
+  border-top: 6px solid var(--ink);
+  padding-top: 10px;
+  margin-bottom: 6px;
+}
+h2 {
+  font-stretch: 75%;
+  font-size: 30px;
+  margin: 36px 0 4px;
+  padding-top: 8px;
+  border-top: 3px solid var(--ink);
+}
+h3 { font-stretch: 85%; font-weight: 800; font-size: 20px; margin: 14px 0 6px; }
+h4 { font-stretch: 85%; font-weight: 800; font-size: 19px; margin: 18px 0 4px; }
+.dateline {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--muted);
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+.lead, .perex {
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.5;
+  max-width: 62ch;
+}
+.lead { color: var(--muted); }
+.perex strong { font-family: var(--sans); font-weight: 800; }
+.note {
+  font-family: var(--serif);
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.55;
+  max-width: 68ch;
+  margin-top: 10px;
+}
 .muted { color: var(--muted); }
-.error { color: var(--red); font-weight: 600; margin: 6px 0 0; }
+.error { color: var(--red); font-weight: 700; margin: 6px 0 0; }
 
+/* ── Ovládací prvky ─────────────────────────────────────── */
 button, input, select, textarea { font: inherit; color: var(--ink); }
 button {
-  background: var(--felt); color: var(--felt-ink); border: 1px solid var(--felt); border-radius: 6px;
-  padding: 9px 14px; font-weight: 600; cursor: pointer; min-height: 40px;
+  background: var(--ink);
+  color: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  padding: 8px 16px;
+  font-weight: 700;
+  font-stretch: 90%;
+  cursor: pointer;
+  min-height: 44px;
 }
-button:disabled { opacity: 0.4; cursor: default; }
-button.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
-button.danger, button.ghost.danger { color: var(--red); border-color: var(--red); background: transparent; }
-button.icon { background: transparent; color: var(--ink); border-color: var(--line); min-width: 40px; padding: 6px; }
-input[type='text'], input:not([type]), input[type='date'], input[type='number'], select, textarea {
-  background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; min-height: 40px;
+button:disabled { opacity: 0.3; cursor: default; }
+button.ghost { background: transparent; color: var(--ink); }
+button.danger, button.ghost.danger { background: transparent; color: var(--red); border-color: var(--red); }
+button.icon {
+  background: transparent; color: var(--ink); border: 1px solid var(--rule);
+  min-width: 40px; min-height: 40px; padding: 0; font-size: 18px;
 }
-label { font-weight: 600; }
+button.back {
+  background: none; border: 0; padding: 0; min-height: 36px; color: var(--muted);
+  font-weight: 600; text-decoration: underline; text-underline-offset: 3px;
+}
+input[type='text'], input:not([type]), input[type='date'], select, textarea {
+  background: var(--field);
+  border: 0;
+  border-bottom: 2px solid var(--ink);
+  border-radius: 0;
+  padding: 8px 4px;
+  min-height: 44px;
+}
+select { padding-right: 24px; }
+label { font-weight: 700; font-stretch: 90%; }
 
-/* Navigace */
+/* ── Kostra a navigace ──────────────────────────────────── */
+.page { max-width: 920px; margin: 0 auto; padding: 20px 16px calc(var(--nav-h) + 40px); }
 .bottom-nav {
-  position: fixed; left: 0; right: 0; bottom: 0; height: var(--nav-h); z-index: 10;
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  background: var(--paper); border-top: 1px solid var(--line);
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+  height: calc(var(--nav-h) + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  background: var(--paper);
+  border-top: 3px solid var(--ink);
 }
 .bottom-nav button {
-  background: transparent; color: var(--muted); border: 0; border-radius: 0; font-size: 16px;
-  border-top: 3px solid transparent;
+  background: transparent; color: var(--muted); border: 0; border-top: 4px solid transparent;
+  margin-top: -3px; font-size: 17px; font-weight: 800; font-stretch: 80%;
 }
-.bottom-nav button.active { color: var(--felt); border-top-color: var(--felt); }
+.bottom-nav button.active { color: var(--ink); border-top-color: var(--red); }
 .save-banner {
-  position: sticky; top: 0; z-index: 20; background: var(--red); color: #fff;
-  text-align: center; padding: 8px 16px; font-weight: 600;
+  position: sticky; top: 0; z-index: 20;
+  background: var(--red); color: #fff;
+  padding: 10px 16px; font-weight: 700; text-align: center;
 }
-.save-banner .banner-ok { color: #fff; border-color: #fff; min-height: 30px; padding: 2px 10px; margin-left: 8px; }
-.load-error { padding: 24px 0; }
+.save-banner .banner-ok { color: #fff; border-color: #fff; background: transparent; min-height: 30px; padding: 2px 10px; margin-left: 8px; }
+.load-error { padding: 24px 0; font-family: var(--serif); font-size: 18px; }
 
-/* Hráči */
+/* ── Hráči ──────────────────────────────────────────────── */
 .add-form { margin: 18px 0; }
-.add-form label { display: block; margin-bottom: 6px; }
-.add-row { display: flex; gap: 8px; }
+.add-form label { display: block; margin-bottom: 4px; }
+.add-row { display: flex; gap: 8px; align-items: flex-end; }
 .add-row input { flex: 1; min-width: 0; }
-.player-list { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--line); }
+.player-list { list-style: none; padding: 0; margin: 0; border-top: 2px solid var(--ink); }
 .player-row {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
-  padding: 8px 0; border-bottom: 1px solid var(--line);
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px;
+  padding: 8px 0; border-bottom: 1px solid var(--rule);
 }
-.player-name { font-weight: 600; font-size: 18px; }
+.player-name { font-weight: 800; font-stretch: 85%; font-size: 20px; }
 .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-.inline-form { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+.player-row .player-name { flex: 1; }
+.row-actions { align-items: center; }
+.row-actions button.ghost {
+  border: 0; background: none; padding: 4px 6px; min-height: 40px;
+  font-weight: 600; color: var(--muted); text-decoration: underline; text-underline-offset: 3px;
+}
+.row-actions button.ghost.danger { color: var(--red); }
+.inline-form { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; align-items: flex-end; }
 .inline-form input { flex: 1; min-width: 0; }
 .inline-form .error { width: 100%; }
-details.archived { margin-top: 16px; }
-details summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
+details { margin-top: 16px; }
+details summary { cursor: pointer; font-weight: 800; font-stretch: 85%; font-size: 18px; padding: 8px 0; }
 
-/* Trénink */
-.training-list { list-style: none; padding: 0; margin: 12px 0; border-top: 1px solid var(--line); }
-.training-list li { border-bottom: 1px solid var(--line); }
+/* ── Seznam tréninků ────────────────────────────────────── */
+.training-list { list-style: none; padding: 0; margin: 16px 0; border-top: 2px solid var(--ink); }
+.training-list li { border-bottom: 1px solid var(--rule); }
 .training-list button {
-  width: 100%; text-align: left; background: transparent; color: var(--ink); border: 0; border-radius: 0;
-  padding: 12px 0; display: flex; flex-direction: column; gap: 2px;
+  width: 100%; text-align: left; background: transparent; color: var(--ink); border: 0;
+  padding: 12px 0; display: flex; flex-direction: column; gap: 2px; min-height: 0;
 }
-.training-list .sub { color: var(--muted); font-weight: 400; font-size: 14px; }
-.setup { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px 16px; margin: 16px 0; }
-.setup .field { display: flex; flex-direction: column; gap: 6px; }
-.attendance { margin: 16px 0; }
-.attendance-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.count-badge { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 700; }
-.check-list { list-style: none; padding: 0; margin: 8px 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
-.check-list label {
-  display: flex; align-items: center; gap: 10px; padding: 10px 12px; min-height: 44px;
-  background: var(--paper); border: 1px solid var(--line); border-radius: 6px; font-weight: 600; cursor: pointer;
-}
-.check-list input { width: 20px; height: 20px; accent-color: var(--felt); }
-.check-list .archived-tag { color: var(--muted); font-weight: 400; font-size: 13px; }
-.order-list { list-style: none; padding: 0; margin: 8px 0; counter-reset: ord; }
-.order-list li { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); }
-.order-list .pos { width: 2ch; color: var(--muted); text-align: right; }
-.order-list .nm { flex: 1; font-weight: 600; }
-.summary-box { background: var(--paper); border: 2px solid var(--ball); border-left-width: 14px; padding: 12px 16px; margin: 20px 0 8px; }
-.summary-box p:last-child { margin-bottom: 0; }
+.training-list button > span:first-child { font-size: 24px; font-weight: 900; font-stretch: 70%; }
+.training-list .sub { font-family: var(--serif); color: var(--muted); font-weight: 400; font-size: 15px; }
 .actions-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
 
-/* Tabulky */
-.wrap { overflow-x: auto; margin-bottom: 8px; -webkit-overflow-scrolling: touch; }
-table { border-collapse: collapse; width: 100%; background: var(--paper); font-size: 15px; }
-th, td { border: 1px solid var(--line); padding: 7px 9px; text-align: left; vertical-align: top; }
-th { background: var(--felt); color: var(--felt-ink); font-weight: 600; white-space: nowrap; }
-td.t { font-family: 'Barlow Condensed', sans-serif; font-size: 19px; font-weight: 700; white-space: nowrap; }
-td.b { font-weight: 600; white-space: nowrap; }
-td.wait { background: var(--wait); color: var(--muted); }
-td.free { color: var(--muted); font-style: italic; }
-td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
-td.pos { color: var(--felt); font-weight: 600; }
-td.neg { color: var(--red); font-weight: 600; }
-tr.clickable { cursor: pointer; }
-tr.clickable:hover td { background: var(--wait); }
-.vs { color: var(--muted); }
-.rule { display: block; color: var(--muted); font-weight: 400; font-size: 14px; white-space: normal; }
-.match-players { white-space: nowrap; }
-.score { display: flex; align-items: center; gap: 6px 10px; margin-top: 6px; flex-wrap: wrap; }
-.score-pair { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
-.schedule td { min-width: 120px; }
-.schedule td.t { min-width: 0; }
-.schedule td.b { min-width: 110px; white-space: normal; }
-.schedule td:has([role='group']) { min-width: 190px; }
-.score input { width: 46px; min-height: 36px; padding: 4px 6px; text-align: center; font-variant-numeric: tabular-nums; }
-.score .sep { font-weight: 600; }
-.score .lbl { font-size: 12px; color: var(--muted); }
-.teams { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 700; margin: 6px 0 12px; }
-.disc { border-top: 1px solid var(--line); padding: 8px 0 4px; }
-.disc p { margin-bottom: 4px; }
-.disc .k { font-weight: 600; color: var(--muted); }
+/* ── Nastavení tréninku ─────────────────────────────────── */
+.setup { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px 20px; margin: 8px 0 16px; }
+.setup .field { display: flex; flex-direction: column; gap: 2px; }
+.attendance-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  border-top: 3px solid var(--ink); margin-top: 28px; padding-top: 8px;
+}
+.attendance-head h2 { margin: 0; padding: 0; border: 0; }
+.count-badge { font-weight: 800; font-stretch: 75%; font-size: 20px; color: var(--muted); }
+.check-list {
+  list-style: none; padding: 0; margin: 8px 0;
+  columns: 2 150px; column-gap: 20px;
+}
+.check-list li { break-inside: avoid; border-bottom: 1px solid var(--rule); }
+.check-list label {
+  display: flex; align-items: center; gap: 10px; padding: 10px 0; min-height: 46px;
+  font-weight: 700; font-stretch: 90%; font-size: 17px; cursor: pointer;
+}
+.check-list input { width: 22px; height: 22px; accent-color: var(--ink); margin: 0; }
+.check-list .archived-tag { color: var(--muted); font-weight: 400; font-size: 14px; }
+.order-list { list-style: none; padding: 0; margin: 8px 0; }
+.order-list li { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--rule); }
+.order-list .pos { width: 2.5ch; color: var(--muted); text-align: right; font-weight: 700; }
+.order-list .nm { flex: 1; font-weight: 700; }
 
-/* Žebříček */
-.segmented { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin: 4px 8px 4px 0; flex-wrap: wrap; }
-.segmented button { background: var(--paper); color: var(--ink); border: 0; border-radius: 0; border-right: 1px solid var(--line); }
-.segmented button:last-child { border-right: 0; }
-.segmented button[aria-pressed='true'] { background: var(--felt); color: var(--felt-ink); }
-.range-dates { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; align-items: center; }
-.range-label { color: var(--muted); margin: 6px 0 12px; }
+/* ── Rozpis: výsledkový sloupec ─────────────────────────── */
+.schedule { margin-top: 8px; }
+.sched-section h3 { color: var(--red); }
+.rounds { list-style: none; margin: 0; padding: 0; }
+.round { border-top: 1px solid var(--ink); padding: 10px 0 12px; }
+.round-head { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: baseline; }
+.round-time {
+  grid-row: span 3;
+  font-weight: 900; font-stretch: 62%; font-size: 40px; line-height: 0.9;
+  min-width: 2.6ch;
+}
+.round-label { font-weight: 800; font-stretch: 85%; font-size: 19px; }
+.round-rule, .round-note { font-family: var(--serif); color: var(--muted); font-size: 15px; }
+.round-note { font-style: italic; color: var(--red); }
+.round-break .round-time { color: var(--muted); }
+.round-break .round-label { color: var(--muted); }
+.slots {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 0 20px; margin-top: 8px;
+}
+.slot { padding: 8px 0; border-top: 1px dotted var(--rule); }
+.slot-no { display: block; color: var(--muted); font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.group-names { display: block; font-weight: 700; }
+.station { display: block; font-family: var(--serif); font-style: italic; color: var(--muted); font-size: 15px; }
+.round-foot { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 6px 0 0; font-size: 14px; color: var(--muted); font-weight: 600; }
+.round-foot:empty { display: none; }
+
+/* Výsledek zápasu: strany pod sebou, skóre v políčkách vpravo */
+.result { display: grid; gap: 4px; }
+.result-side { display: grid; grid-template-columns: 14px 1fr auto; align-items: center; gap: 8px; }
+.side-tag { font-size: 11px; font-weight: 700; color: var(--muted); }
+.side-name { font-weight: 600; font-size: 17px; line-height: 1.2; }
+.result-side.won .side-name { font-weight: 800; }
+.result input.goal {
+  width: 52px; height: 48px; padding: 0;
+  border: 2px solid var(--ink); border-radius: 0; background: var(--field);
+  text-align: center; font-weight: 900; font-stretch: 70%; font-size: 30px;
+  -moz-appearance: textfield; appearance: textfield;
+}
+.result-side.won input.goal { background: var(--ink); color: var(--paper); }
+.result input::-webkit-outer-spin-button,
+.result input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.result input::placeholder { color: var(--rule); }
+.losses { display: flex; align-items: center; gap: 6px; justify-content: flex-end; font-size: 13px; color: var(--muted); font-weight: 600; }
+.result input.loss {
+  width: 40px; height: 34px; padding: 0; border: 0; border-bottom: 2px solid var(--muted); border-radius: 0;
+  background: transparent; text-align: center; font-weight: 700; font-size: 18px;
+  -moz-appearance: textfield; appearance: textfield;
+}
+
+/* ── Tabulky (souhrn, žebříček, hráč) ───────────────────── */
+.wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 8px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { padding: 7px 8px; text-align: left; vertical-align: baseline; border-bottom: 1px solid var(--rule); }
+th {
+  font-weight: 700; font-stretch: 85%; font-size: 13px; color: var(--muted);
+  border-bottom: 2px solid var(--ink); white-space: nowrap; vertical-align: bottom;
+}
+td:first-child, th:first-child { padding-left: 0; }
+td.n, th.n { text-align: right; }
+td.pos { font-weight: 800; }
+td.neg { color: var(--red); font-weight: 800; }
+tbody tr:first-child td { font-weight: 800; }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td { background: var(--field); }
+.teams { font-weight: 800; font-stretch: 75%; font-size: 22px; margin: 10px 0 4px; }
+.teams .rule { display: block; font-family: var(--serif); font-weight: 400; font-stretch: 100%; font-size: 15px; color: var(--muted); }
 .low-data td { color: var(--muted); }
-.player-link { background: none; border: 0; color: var(--ink); padding: 0; min-height: 0; font-weight: 600; text-align: left; text-decoration: underline; text-decoration-color: var(--line); }
+.low-data tbody tr:first-child td { font-weight: 400; }
+.player-link {
+  background: none; border: 0; color: inherit; padding: 0; min-height: 0; font: inherit; font-weight: 700;
+  text-align: left; text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 3px;
+}
+
+/* ── Žebříček: přepínače jako rubriky ───────────────────── */
+.segmented { display: flex; flex-wrap: wrap; gap: 0 18px; margin: 6px 0; }
+.segmented button {
+  background: none; color: var(--muted); border: 0; border-bottom: 3px solid transparent;
+  padding: 6px 0; min-height: 40px; font-weight: 800; font-stretch: 85%; font-size: 17px;
+}
+.segmented button[aria-pressed='true'] { color: var(--ink); border-bottom-color: var(--red); }
+.range-dates { display: flex; gap: 8px 12px; flex-wrap: wrap; margin: 8px 0; align-items: center; }
+
+/* ── Vysvětlivky ────────────────────────────────────────── */
+.explanations { border-top: 3px solid var(--ink); margin-top: 32px; }
+.disc { border-top: 1px solid var(--rule); padding: 8px 0 4px; font-family: var(--serif); line-height: 1.55; max-width: 68ch; }
+.disc strong { font-family: var(--sans); font-weight: 800; font-size: 17px; }
+.disc .k { font-family: var(--sans); font-weight: 700; color: var(--muted); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .result input.goal { transition: background-color 0.15s, color 0.15s; }
+}
 
 @media print {
-  body { background: #fff; color: #000; }
+  :root { --paper: #fff; --ink: #000; --muted: #444; --rule: #bbb; --red: #000; --field: #fff; }
   .bottom-nav, .save-banner, .no-print, details, button { display: none !important; }
   .page { padding: 0; max-width: none; }
-  .wrap { overflow: visible; }
-  th { background: #eee; color: #000; }
-  .score input { border: none; border-bottom: 1px solid #999; border-radius: 0; background: transparent; }
-  .score input::placeholder { color: transparent; }
-  h2 { page-break-after: avoid; }
-  tr { page-break-inside: avoid; }
+  .result input.goal { border-width: 1px; }
+  .result input::placeholder { color: transparent; }
+  .result-side.won input.goal { background: #fff; color: #000; }
+  .round { break-inside: avoid; }
+  h2 { break-after: avoid; }
 }

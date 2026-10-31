@@ -133,7 +133,7 @@ export function LadderPage({ store, prefs, setPrefs, navigate }: Props) {
           <input id="r-to" type="date" value={range.to} onChange={(e) => e.target.value && setPrefs({ ...prefs, ladderRange: { ...range, to: e.target.value } })} />
         </div>
       )}
-      <p className="range-label">{rangeText(range, today)}</p>
+      <p className="dateline">{rangeText(range, today)}</p>
 
       {ranked.length === 0 && lowData.length === 0 ? (
         <p className="note">V tomhle období zatím nejsou žádné zapsané legy.</p>

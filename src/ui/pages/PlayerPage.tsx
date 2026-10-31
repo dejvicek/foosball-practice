@@ -10,8 +10,8 @@ export function PlayerPage({ store, id, prefs, navigate }: { store: AppStore; id
   const today = todayIso();
   const player = store.data.players.find((p) => p.id === id);
   const back = (
-    <button type="button" className="ghost" onClick={() => navigate({ page: 'ladder' })}>
-      ← Zpět na žebříček
+    <button type="button" className="back" onClick={() => navigate({ page: 'ladder' })}>
+      Zpět na žebříček
     </button>
   );
   if (!player)
@@ -26,7 +26,7 @@ export function PlayerPage({ store, id, prefs, navigate }: { store: AppStore; id
     <section>
       {back}
       <h1>{player.name}</h1>
-      <p className="range-label">{rangeText(prefs.ladderRange, today)}</p>
+      <p className="dateline">{rangeText(prefs.ladderRange, today)}</p>
       {rows.length === 0 ? (
         <p className="note">V tomhle období hráč nebyl na žádném tréninku.</p>
       ) : (

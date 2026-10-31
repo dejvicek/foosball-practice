@@ -21,66 +21,61 @@ function CellView({ cell, row, table, props }: { cell: Cell; row: ScheduleRow; t
   const nm = (ids: PlayerId[]) => ids.map((id) => props.names[id] ?? '?').join(' + ');
   if (cell.type === 'group') {
     return (
-      <>
-        {nm(cell.players)}
-        {cell.station && <span className="rule">{cell.station}</span>}
-      </>
+      <div className="slot">
+        <span className="slot-no">Stůl {table}</span>
+        <span className="group-names">{nm(cell.players)}</span>
+        {cell.station && <span className="station">{cell.station}</span>}
+      </div>
     );
   }
   const m = cell.match;
   const label = cellLabel(row, table);
   return (
-    <div role="group" aria-label={label}>
-      <span className="match-players">
-        {nm(m.sideA)} <span className="vs">vs</span> {nm(m.sideB)}
+    <div className="slot" role="group" aria-label={label}>
+      <span className="slot-no">
+        Stůl {table}, {m.kind === 'doubles' ? 'dvojice' : 'singl'}
       </span>
-      <span className="rule">{m.kind === 'doubles' ? 'dvojice' : 'singl'}</span>
+      <span className="visually-hidden">
+        {nm(m.sideA)} vs {nm(m.sideB)}
+      </span>
       <ScoreInputs
         label={label}
         score={props.scores[m.id]}
         maxGoals={m.block === 'sim' ? 2 : 10}
         withLosses={m.block === 'league'}
+        sides={[nm(m.sideA), nm(m.sideB)]}
         onChange={(s) => props.onScore(m.id, s)}
       />
     </div>
   );
 }
 
-function RowView({ row, tables, props }: { row: ScheduleRow; tables: number; props: Props }) {
-  const head = (
-    <>
-      <td className="t">{clock(row.time)}</td>
-      <td className="b">
-        {row.label}
-        {row.rule && <span className="rule">{row.rule}</span>}
-        {row.rule && SCENARIO.test(row.rule) && <span className="rule">Zapisuj jen odehrané góly.</span>}
-      </td>
-    </>
-  );
-  if (row.kind === 'break') {
-    return (
-      <tr>
-        {head}
-        <td className="free" colSpan={tables + 1} />
-      </tr>
-    );
-  }
+function RowView({ row, waitingLabel, props }: { row: ScheduleRow; waitingLabel: string; props: Props }) {
+  const free = row.cells.map((c, j) => (c ? null : j + 1)).filter((x): x is number => x !== null);
   return (
-    <tr>
-      {head}
-      {row.cells.map((c, j) =>
-        c ? (
-          <td key={j}>
-            <CellView cell={c} row={row} table={j + 1} props={props} />
-          </td>
-        ) : (
-          <td key={j} className="free">
-            volný
-          </td>
-        ),
+    <li className={`round round-${row.kind}`} data-row>
+      <div className="round-head">
+        <span className="round-time">{clock(row.time)}</span>
+        <span className="round-label">{row.label}</span>
+        {row.rule && <span className="round-rule">{row.rule}</span>}
+        {row.rule && SCENARIO.test(row.rule) && <span className="round-note">Zapisuj jen odehrané góly.</span>}
+      </div>
+      {row.kind !== 'break' && (
+        <>
+          <div className="slots">
+            {row.cells.map((c, j) => (c ? <CellView key={j} cell={c} row={row} table={j + 1} props={props} /> : null))}
+          </div>
+          <p className="round-foot">
+            {row.waiting.length > 0 && (
+              <span>
+                {waitingLabel}: {row.waiting.map((id) => props.names[id] ?? '?').join(', ')}
+              </span>
+            )}
+            {free.length > 0 && row.kind === 'matches' && <span>Volné stoly: {free.join(', ')}</span>}
+          </p>
+        </>
       )}
-      <td className="wait">{row.waiting.length ? row.waiting.map((id) => props.names[id] ?? '?').join(', ') : '–'}</td>
-    </tr>
+    </li>
   );
 }
 
@@ -125,41 +120,23 @@ export function ScheduleView(props: Props) {
   const t = s.tables;
   return (
     <div className="schedule">
-      <div className="summary-box">
-        <p>
-          <strong>
-            {n} {plural(n, 'hráč', 'hráči', 'hráčů')}, {t} stoly
-          </strong>
-          : {s.mode === 'team' ? 'týmový trénink, 3 hodiny' : 'trénink jedniček, zhruba 80 minut'}.
-        </p>
-        {s.mode === 'single' && n > 2 * t && (
-          <p>Víc hráčů než míst na stolech: {n - 2 * t} lidí každé kolo počítá, role se střídají.</p>
-        )}
-        {s.mode === 'team' && n > 4 * t && <p>Víc hráčů než míst pro dvojice na stolech, část hráčů každé kolo počítá nebo hraje singl.</p>}
-      </div>
+      <p className="perex">
+        <strong>
+          {n} {plural(n, 'hráč', 'hráči', 'hráčů')}, {t} stoly.
+        </strong>{' '}
+        {s.mode === 'team' ? 'Týmový trénink na 3 hodiny.' : 'Trénink jedniček, zhruba 80 minut.'}
+        {s.mode === 'single' && n > 2 * t && ` Víc hráčů než míst na stolech: ${n - 2 * t} lidí každé kolo počítá, role se střídají.`}
+        {s.mode === 'team' && n > 4 * t && ' Víc hráčů než míst pro dvojice na stolech, část hráčů každé kolo počítá nebo hraje singl.'}
+      </p>
       {s.sections.map((sec) => (
-        <section key={sec.id}>
+        <section key={sec.id} className="sched-section">
           <h2>{sec.title}</h2>
           {sec.subtitle && <h3>{sec.subtitle}</h3>}
-          <div className="wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Čas</th>
-                  <th>Blok</th>
-                  {Array.from({ length: t }, (_, j) => (
-                    <th key={j}>Stůl {j + 1}</th>
-                  ))}
-                  <th>{sec.waitingLabel}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sec.rows.map((r, i) => (
-                  <RowView key={i} row={r} tables={t} props={props} />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ol className="rounds">
+            {sec.rows.map((r, i) => (
+              <RowView key={i} row={r} waitingLabel={sec.waitingLabel} props={props} />
+            ))}
+          </ol>
           {sectionNote(sec, s, props.names, n).map((txt, i) => (
             <p key={i} className="note">
               {txt}
