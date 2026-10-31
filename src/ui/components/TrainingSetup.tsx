@@ -18,6 +18,8 @@ export function TrainingSetup({ training, players, onChange, onAddPlayer }: Prop
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const n = training.attendees.length;
+  // Přítomní jsou rozbalení, dokud jich při otevření stránky není dost na rozpis.
+  const [initiallyOpen] = useState(() => n < MIN_PLAYERS);
   const byId = new Map(players.map((p) => [p.id, p]));
 
   // Aktivní hráči + archivovaní, kteří už v tréninku jsou.
@@ -38,6 +40,15 @@ export function TrainingSetup({ training, players, onChange, onAddPlayer }: Prop
           <input id="t-date" type="date" value={training.date} onChange={(e) => e.target.value && onChange({ ...training, date: e.target.value })} />
         </div>
         <div className="field">
+          <label htmlFor="t-start">Začátek</label>
+          <input
+            id="t-start"
+            type="time"
+            value={training.startTime}
+            onChange={(e) => /^\d{2}:\d{2}$/.test(e.target.value) && onChange({ ...training, startTime: e.target.value })}
+          />
+        </div>
+        <div className="field">
           <label htmlFor="t-mode">Typ tréninku</label>
           <select id="t-mode" value={training.mode} onChange={(e) => onChange({ ...training, mode: e.target.value as Mode })}>
             <option value="team">{MODE_OPTION.team}</option>
@@ -54,11 +65,12 @@ export function TrainingSetup({ training, players, onChange, onAddPlayer }: Prop
         </div>
       </div>
 
-      <div className="attendance">
-        <div className="attendance-head">
-          <h2>Přítomní</h2>
+      <details className="attendance" open={initiallyOpen}>
+        <summary className="attendance-head">
+          <span className="attendance-title">Přítomní</span>
           <span className="count-badge">Přítomno: {n}</span>
-        </div>
+          <span className="attendance-hint">{n >= MIN_PLAYERS ? 'upravit' : ''}</span>
+        </summary>
         {n < MIN_PLAYERS && (
           <p className="note">
             Ještě chybí {MIN_PLAYERS - n} {plural(MIN_PLAYERS - n, 'hráč', 'hráči', 'hráčů')} do minima {MIN_PLAYERS}.
@@ -96,7 +108,7 @@ export function TrainingSetup({ training, players, onChange, onAddPlayer }: Prop
           </div>
           {error && <p className="error">{error}</p>}
         </form>
-      </div>
+      </details>
 
       {n > 1 && (
         <details>

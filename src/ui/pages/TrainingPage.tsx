@@ -1,10 +1,11 @@
 import { addPlayer } from '../../domain/roster';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { buildSchedule, canBuildSchedule } from '../../domain/schedule';
 import { lostEntries, pruneEntries, toggleAttendee, type LostEntries } from '../../domain/training';
 import type { Training } from '../../domain/types';
 import { Explanations } from '../components/Explanations';
-import { ScheduleView } from '../components/ScheduleView';
+import { TrainingTable } from '../components/TrainingTable';
+import { currentRow, firstIncomplete, minutesSinceStart, rowKey, useNow } from '../now';
 import { StandingsView } from '../components/StandingsView';
 import { TrainingSetup } from '../components/TrainingSetup';
 import { formatDateLong } from '../dates';
@@ -26,6 +27,7 @@ export function lossMessage(lost: LostEntries): string | null {
 
 const configChanged = (a: Training, b: Training) =>
   a.mode !== b.mode || a.tables !== b.tables || a.attendees.join() !== b.attendees.join();
+// Pozn.: startTime ani datum rozpis nemění, ukládají se přes saveTraining.
 
 export function TrainingPage({ store, id, navigate }: { store: AppStore; id: string; navigate: (r: Route) => void }) {
   const training = store.data.trainings.find((t) => t.id === id);
@@ -39,6 +41,9 @@ export function TrainingPage({ store, id, navigate }: { store: AppStore; id: str
     [mode, tables, attendeesKey],
   );
   const names = useMemo(() => Object.fromEntries(store.data.players.map((p) => [p.id, p.name])), [store.data.players]);
+  const now = useNow();
+  // null = výchozí (běžící / první nevyplněný blok), '' = vše sbalené, jinak klíč řádku
+  const [expanded, setExpanded] = useState<string | null>(null);
   if (!training) {
     return (
       <section>
@@ -49,6 +54,10 @@ export function TrainingPage({ store, id, navigate }: { store: AppStore; id: str
       </section>
     );
   }
+
+  const current = schedule ? currentRow(schedule, minutesSinceStart(training.date, training.startTime, now)) : null;
+  const fallback = schedule ? (current ?? firstIncomplete(schedule, training)) : null;
+  const openKey = expanded ?? (fallback ? rowKey(fallback) : null);
 
   const apply = (next: Training) => {
     const msg = lossMessage(lostEntries(training, next));
@@ -72,31 +81,36 @@ export function TrainingPage({ store, id, navigate }: { store: AppStore; id: str
         Zpět na tréninky
       </button>
       <h1>{formatDateLong(training.date)}</h1>
-      <p className="dateline">{MODE_LABEL[training.mode]}</p>
+      <p className="dateline">
+        {MODE_LABEL[training.mode]}, {training.attendees.length} {plural(training.attendees.length, 'hráč', 'hráči', 'hráčů')}, {training.tables} stoly
+      </p>
 
       <TrainingSetup training={training} players={store.data.players} onChange={apply} onAddPlayer={onAddPlayer} />
 
       {schedule && (
         <>
+          <TrainingTable
+            schedule={schedule}
+            training={training}
+            names={names}
+            current={current}
+            expanded={openKey}
+            onToggle={(key) => setExpanded(openKey === key ? '' : key)}
+            onScore={(matchId, s) => store.saveScore(training.id, matchId, s)}
+            onSolo={(playerId, metric, value) => store.saveSolo(training.id, playerId, metric, value)}
+          />
           <div className="actions-row no-print">
             <button type="button" className="ghost" onClick={() => window.print()}>
               Vytisknout rozpis
             </button>
           </div>
-          <ScheduleView
-            schedule={schedule}
-            names={names}
-            scores={training.scores}
-            playerCount={training.attendees.length}
-            onScore={(matchId, s) => store.saveScore(training.id, matchId, s)}
-          />
           <Explanations />
           <StandingsView
             schedule={schedule}
             scores={training.scores}
             attendees={training.attendees}
             names={names}
-            onClear={() => store.updateTrainingConfig({ ...training, scores: {} })}
+            onClear={() => store.updateTrainingConfig({ ...training, scores: {}, soloResults: {} })}
           />
         </>
       )}
@@ -106,7 +120,7 @@ export function TrainingPage({ store, id, navigate }: { store: AppStore; id: str
           type="button"
           className="danger"
           onClick={() => {
-            if (confirm('Smazat celý trénink včetně zapsaných skóre?')) {
+            if (confirm('Smazat celý trénink včetně zapsaných skóre a výsledků?')) {
               store.deleteTraining(training.id);
               navigate({ page: 'trainings' });
             }
