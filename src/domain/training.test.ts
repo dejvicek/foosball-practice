@@ -7,12 +7,12 @@ const roster = (ids: string[]): Player[] => ids.map((id, order) => ({ id, name: 
 describe('newTraining', () => {
   it('bez předchozího: týmový, 4 stoly, nikdo nepřítomen', () => {
     expect(newTraining('x', '2026-10-31', null)).toEqual({
-      id: 'x', date: '2026-10-31', mode: 'team', tables: 4, attendees: [], scores: {},
+      id: 'x', date: '2026-10-31', startTime: '18:00', mode: 'team', tables: 4, attendees: [], scores: {}, soloResults: {},
     });
   });
   it('typ a stoly převezme z posledního tréninku', () => {
     const last = training('l', '2026-10-01', 'single', H(5), 2);
-    expect(newTraining('x', '2026-10-31', last)).toMatchObject({ mode: 'single', tables: 2, attendees: [] });
+    expect(newTraining('x', '2026-10-31', { ...last, startTime: '17:30' })).toMatchObject({ mode: 'single', tables: 2, attendees: [], startTime: '17:30' });
   });
 });
 

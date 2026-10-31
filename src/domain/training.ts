@@ -1,4 +1,5 @@
 import { sortedRoster } from './roster';
+import { DEFAULT_START } from './solo';
 import { buildSchedule, canBuildSchedule } from './schedule';
 import type { MatchId, Player, PlayerId, Score, Training } from './types';
 
@@ -6,10 +7,12 @@ export function newTraining(id: string, today: string, last: Training | null): T
   return {
     id,
     date: today,
+    startTime: last?.startTime ?? DEFAULT_START,
     mode: last?.mode ?? 'team',
     tables: last?.tables ?? 4,
     attendees: [],
     scores: {},
+    soloResults: {},
   };
 }
 

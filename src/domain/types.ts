@@ -18,14 +18,21 @@ export interface Score {
   lb?: number | null;
 }
 
+export type SoloMetric = 'warmupPasses' | 'fiveBarControl' | 'setShooting' | 'blockToControl' | 'backRodsBuildUp' | 'chain';
+/** Výsledky sólové části: hráč → metrika → hodnota (PRD 5.8). */
+export type SoloResults = Record<PlayerId, Partial<Record<SoloMetric, number>>>;
+
 export interface Training {
   id: string;
   date: string; // YYYY-MM-DD
+  /** Skutečný čas začátku 'HH:MM'. */
+  startTime: string;
   mode: Mode;
   tables: TableCount;
   /** Přítomní v nominačním pořadí. */
   attendees: PlayerId[];
   scores: Record<MatchId, Score>;
+  soloResults: SoloResults;
   notes?: string;
 }
 
@@ -43,7 +50,7 @@ export interface Match {
 }
 
 export type Cell =
-  | { type: 'group'; players: PlayerId[]; station?: string }
+  | { type: 'group'; players: PlayerId[]; station?: string; metric?: SoloMetric }
   | { type: 'match'; match: Match };
 
 export interface ScheduleRow {

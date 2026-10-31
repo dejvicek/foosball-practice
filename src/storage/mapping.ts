@@ -1,3 +1,4 @@
+import { DEFAULT_START } from '../domain/solo';
 import { isEmptyScore } from '../domain/training';
 import type { MatchId, Mode, Player, Score, TableCount, Training } from '../domain/types';
 
@@ -63,10 +64,12 @@ export function trainingFromRow(r: TrainingRow, scores: ScoreRow[]): Training {
   const t: Training = {
     id: r.id,
     date: r.date,
+    startTime: DEFAULT_START,
     mode: r.mode,
     tables: r.tables as TableCount,
     attendees: r.attendees ?? [],
     scores: Object.fromEntries(scores.filter((s) => s.training_id === r.id).map((s) => [s.match_id, scoreFromRow(s)])),
+    soloResults: {},
   };
   if (r.notes !== null && r.notes !== undefined) t.notes = r.notes;
   return t;

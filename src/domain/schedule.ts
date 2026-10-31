@@ -2,6 +2,7 @@ import { assign, type Pairing } from './assign';
 import { ROUNDS, STATIONS, TIMES } from './content';
 import { groups, rotate } from './rotation';
 import { buildSimulation } from './simulation';
+import { STATION_METRICS } from './solo';
 import type {
   Block,
   Cell,
@@ -12,6 +13,7 @@ import type {
   ScheduleRow,
   ScheduleSection,
   ScheduleSummary,
+  SoloMetric,
   TableCount,
   Training,
 } from './types';
@@ -72,6 +74,7 @@ function groupRows(
   slotMin: number,
   label: (r: number) => string,
   withStations: boolean,
+  metric?: SoloMetric,
 ): { rows: ScheduleRow[]; g: number; end: number } {
   const g = Math.min(tables, Math.floor(players.length / 2));
   const gr = groups(players, g);
@@ -82,7 +85,11 @@ function groupRows(
     for (let j = 0; j < g; j++) {
       const gi = (((j - r) % g) + g) % g;
       cells.push(
-        withStations ? { type: 'group', players: gr[gi], station: STATIONS[j] } : { type: 'group', players: gr[gi] },
+        withStations
+          ? { type: 'group', players: gr[gi], station: STATIONS[j], metric: STATION_METRICS[j] }
+          : metric
+            ? { type: 'group', players: gr[gi], metric }
+            : { type: 'group', players: gr[gi] },
       );
     }
     rows.push({ time: start + r * slotMin, label: label(r), kind: 'groups', cells: cellsOf(cells, tables), waiting: [] });
@@ -94,7 +101,7 @@ function buildTeam(players: PlayerId[], tables: TableCount): Schedule {
   const matches: Match[] = [];
   const t = TIMES.team;
 
-  const warm = groupRows(players, tables, 0, t.warmup, () => 'Rozehrání s počítáním', false);
+  const warm = groupRows(players, tables, 0, t.warmup, () => 'Rozehrání s počítáním', false, 'warmupPasses');
   const st = groupRows(players, tables, t.warmup, t.stationSlot, (r) => `Stanoviště, rotace ${r + 1}`, true);
   const solo: ScheduleSection = {
     id: 'solo',
@@ -162,8 +169,8 @@ function buildTeam(players: PlayerId[], tables: TableCount): Schedule {
 function buildSingles(players: PlayerId[], tables: TableCount): Schedule {
   const matches: Match[] = [];
   const t = TIMES.single;
-  const warm = groupRows(players, tables, 0, t.warmup, () => 'Rozehrání: rozehrávka ze zadku', false);
-  const chain = groupRows(players, tables, t.warmup, t.chain, () => 'Řetězec (střídání po 10 pokusech)', false);
+  const warm = groupRows(players, tables, 0, t.warmup, () => 'Rozehrání: rozehrávka ze zadku', false, 'backRodsBuildUp');
+  const chain = groupRows(players, tables, t.warmup, t.chain, () => 'Řetězec (střídání po 10 pokusech)', false, 'chain');
   const rows: ScheduleRow[] = [...warm.rows, ...chain.rows];
   let start = t.leagueStart;
   let first = { singles: 0, waiting: 0 };

@@ -45,7 +45,7 @@ describe('buildSchedule – týmový', () => {
     expect(section(T(8, 4), 'solo').rows.map((r) => r.time)).toEqual([0, 15, 23, 31, 39, 47]);
     const rot2 = section(T(8, 4), 'solo').rows[2];
     // rotace 2: stůl 1 hostí skupinu ((0-1) mod 4) = 3, stanoviště 1
-    expect(rot2.cells[0]).toEqual({ type: 'group', players: ['H4', 'H8'], station: STATIONS[0] });
+    expect(rot2.cells[0]).toEqual({ type: 'group', players: ['H4', 'H8'], station: STATIONS[0], metric: 'fiveBarControl' });
   });
 
   it('simulace: vlny 2:00 a 2:20, vyhodnocení 2:45, týmy A/B', () => {
