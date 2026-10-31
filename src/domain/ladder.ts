@@ -1,7 +1,8 @@
 import { addDays } from './dates';
 import { buildSchedule, canBuildSchedule } from './schedule';
 import { compareStat, computeStandings, emptyStat, type StatLine } from './standings';
-import type { Mode, PlayerId, Training } from './types';
+import { pruneEntries } from './training';
+import type { Mode, PlayerId, SoloMetric, Training } from './types';
 
 export type LadderRange = { kind: 'form' } | { kind: 'all' } | { kind: 'custom'; from: string; to: string };
 export type LadderView = 'avg' | 'total';
@@ -108,6 +109,8 @@ export interface PlayerTrainingRow {
   lossPerLeg: number | null;
   simW: number;
   simM: number;
+  /** Výsledky sólové části v tomto tréninku. */
+  solo: Partial<Record<SoloMetric, number>>;
 }
 
 /** Tréninky hráče v období, nejnovější nahoře. */
@@ -131,6 +134,7 @@ export function playerHistory(
       lossPerLeg: r.lossLegs ? r.loss / r.lossLegs : null,
       simW: r.simW,
       simM: r.simM,
+      solo: pruneEntries(training).soloResults[playerId] ?? {},
     });
   }
   return out.map((r, i) => ({ r, i })).sort((a, b) => (a.r.date < b.r.date ? 1 : a.r.date > b.r.date ? -1 : b.i - a.i)).map((x) => x.r);
