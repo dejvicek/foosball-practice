@@ -187,18 +187,33 @@ describe('tabulka tréninku', () => {
     );
   });
 
-  it('vysvětlivky jsou u bloku, samostatná sekce Vysvětlivky není', async () => {
+  it('nápověda má všude stejný formát: pod kartami, stejná komponenta', async () => {
     const user = userEvent.setup();
     render(<App repo={memoryRepository({ players: players(8), trainings: [training(8, 'team', 4)] })} />);
     await screen.findByRole('table', { name: 'Rozpis tréninku' });
     expect(screen.queryByText('Vysvětlivky: stanoviště, pravidla a scénáře')).toBeNull();
+
     await user.click(screen.getByRole('button', { name: /^Stanoviště, rotace 1/ }));
-    const card = screen.getByRole('group', { name: 'Stanoviště, rotace 1, stůl 1' });
-    expect(card).toHaveTextContent('Teprve po třetím zastavení smí přihrát na trojku');
+    let entry = screen.getByRole('group', { name: 'Stanoviště, rotace 1, stůl 1' }).closest<HTMLElement>('.block-entry')!;
+    // karty bez nápovědy, nápověda jen v .help pod kartami
+    expect(entry.querySelector('.entry-card .help-item')).toBeNull();
+    const stationHelp = [...entry.querySelectorAll('.help .help-item')];
+    expect(stationHelp.map((h) => h.querySelector('h4')?.textContent)).toEqual([
+      'Stůl 1: Udržení míče na pětce',
+      'Stůl 2: Střelba jen z nastavení',
+      'Stůl 3: Obrana do držení',
+      'Stůl 4: Rozehrávka ze zadních tyčí',
+    ]);
+    expect(stationHelp[0]).toHaveTextContent('Teprve po třetím zastavení smí přihrát na trojku');
+
     await user.click(screen.getByRole('button', { name: /^Kolo 1/ }));
-    const entry = screen.getByRole('group', { name: 'Kolo 1, stůl 1' }).closest<HTMLElement>('.block-entry')!;
-    expect(entry).toHaveTextContent('Leg do 6 bez dalších pravidel');
+    entry = screen.getByRole('group', { name: 'Kolo 1, stůl 1' }).closest<HTMLElement>('.block-entry')!;
+    expect(entry.querySelector('.entry-card .help-item')).toBeNull();
+    const roundHelp = [...entry.querySelectorAll('.help > .help-item')];
+    expect(roundHelp.map((h) => h.querySelector('h4')?.textContent)).toEqual(['Normální leg']);
+    expect(roundHelp[0]).toHaveTextContent('Leg do 6 bez dalších pravidel');
     expect(within(entry).getByText('Obecná pravidla: každý gól se počítá, role rozhodčího')).toBeInTheDocument();
+    expect(entry.querySelectorAll('.help details .help-item')).toHaveLength(2);
   });
 
   it('jedničky n=5: v kole 1 počítá H5', async () => {

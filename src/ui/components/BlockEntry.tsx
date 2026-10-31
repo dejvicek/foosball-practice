@@ -14,23 +14,27 @@ interface Props {
   onSolo(playerId: PlayerId, metric: SoloMetric, value: number | null): void;
 }
 
-function ItemText({ item, skipCounting = false }: { item: ExplanationItem; skipCounting?: boolean }) {
+/** Jedna nápověda – stejný formát pro všechny bloky (nadpis + odstavce se štítky). */
+function HelpItem({ title, item }: { title: string; item: ExplanationItem }) {
   return (
-    <>
-      {item.parts
-        .filter((p) => !(skipCounting && p.label === 'Počítá se:'))
-        .map((p, i) => (
-          <p key={i}>
-            {p.label && <span className="k">{p.label}</span>} {p.text}
-          </p>
-        ))}
-    </>
+    <section className="help-item">
+      <h4>{title}</h4>
+      {item.parts.map((p, i) => (
+        <p key={i}>
+          {p.label && <span className="k">{p.label}</span>} {p.text}
+        </p>
+      ))}
+    </section>
   );
 }
 
 export function BlockEntry({ row, waitingLabel, training, names, onScore, onSolo }: Props) {
   const nm = (ids: PlayerId[]) => ids.map((id) => names[id] ?? '?').join(' + ');
   const ex = explanationsFor(row);
+  // Rozhodčí u stolu se ukazuje v kartě; pod kartami jen ti, kdo nejsou u žádného stolu.
+  const refs = new Set(row.cells.flatMap((c) => (c?.type === 'match' && c.match.referee ? [c.match.referee] : [])));
+  const unassigned = row.waiting.filter((p) => !refs.has(p));
+  const hasHelp = ex.main.length > 0 || ex.general.length > 0 || ex.perTable.some(Boolean);
   const scenario = /^Start /.test(row.rule ?? '');
   return (
     <div className="block-entry">
@@ -80,11 +84,6 @@ export function BlockEntry({ row, waitingLabel, training, names, onScore, onSolo
                 <strong>{def.name}</strong>
                 <span>{def.what}</span>
               </div>
-              {ex.perTable[j] && (
-                <div className="entry-explain">
-                  <ItemText item={ex.perTable[j]!} skipCounting />
-                </div>
-              )}
               {c.players.map((p) => {
                 const v = training.soloResults[p]?.[c.metric!];
                 return (
@@ -113,27 +112,32 @@ export function BlockEntry({ row, waitingLabel, training, names, onScore, onSolo
       </div>
       <div className="entry-foot">
         {scenario && <p className="entry-warn">Zapiš konečný stav na stole, startovní góly appka odečte sama.</p>}
-        {ex.main.map((it) => (
-          <div key={it.name} className="entry-rule">
-            <strong>{it.name}</strong>
-            <ItemText item={it} />
-          </div>
-        ))}
-        {ex.general.length > 0 && (
-          <details className="entry-general">
-            <summary>Obecná pravidla: {ex.general.map((g) => g.name.toLocaleLowerCase('cs')).join(', ')}</summary>
-            {ex.general.map((it) => (
-              <div key={it.name} className="entry-rule">
-                <strong>{it.name}</strong>
-                <ItemText item={it} />
-              </div>
-            ))}
-          </details>
-        )}
-        {row.waiting.length > 0 && (
+        {unassigned.length > 0 && (
           <p className="muted">
-            {waitingLabel}: {row.waiting.map((p) => names[p] ?? '?').join(', ')}
+            {refs.size ? 'Čeká' : waitingLabel}: {unassigned.map((p) => names[p] ?? '?').join(', ')}
           </p>
+        )}
+        {hasHelp && (
+        <div className="help">
+          {ex.perTable.some(Boolean) && (
+            <div className="help-grid">
+              {ex.perTable.map((it, j) =>
+                it ? <HelpItem key={j} title={`Stůl ${j + 1}: ${it.name}`} item={it} /> : <div key={j} />,
+              )}
+            </div>
+          )}
+          {ex.main.map((it) => (
+            <HelpItem key={it.name} title={it.name} item={it} />
+          ))}
+          {ex.general.length > 0 && (
+            <details>
+              <summary>Obecná pravidla: {ex.general.map((g) => g.name.toLocaleLowerCase('cs')).join(', ')}</summary>
+              {ex.general.map((it) => (
+                <HelpItem key={it.name} title={it.name} item={it} />
+              ))}
+            </details>
+          )}
+        </div>
         )}
       </div>
     </div>
