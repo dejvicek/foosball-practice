@@ -11,3 +11,4 @@ dist/
 # Plány odvozené z PRD – nesdílet
 docs/superpowers/
 .playwright-mcp/
+.superpowers/
