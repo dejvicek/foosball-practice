@@ -29,6 +29,26 @@ describe('memoryRepository', () => {
     expect(repo.snapshot().trainings[0].scores).toEqual({ a: { ga: 1 } });
   });
 
+  it('saveSolo uloží a null smaže; replaceSolo nechá jen vyjmenované', async () => {
+    const repo = memoryRepository();
+    await repo.saveTraining(t);
+    await repo.saveSolo('t1', 'a', 'fiveBarControl', 2);
+    await repo.saveSolo('t1', 'a', 'setShooting', 11);
+    await repo.saveSolo('t1', 'b', 'chain', 4);
+    await repo.saveSolo('t1', 'a', 'setShooting', null);
+    expect(repo.snapshot().trainings[0].soloResults).toEqual({ a: { fiveBarControl: 2 }, b: { chain: 4 } });
+    await repo.replaceSolo('t1', [{ playerId: 'a', metric: 'fiveBarControl' }]);
+    expect(repo.snapshot().trainings[0].soloResults).toEqual({ a: { fiveBarControl: 2 } });
+  });
+
+  it('saveTraining nemění výsledky sólové části', async () => {
+    const repo = memoryRepository();
+    await repo.saveTraining(t);
+    await repo.saveSolo('t1', 'a', 'chain', 4);
+    await repo.saveTraining({ ...t, startTime: '17:00' });
+    expect(repo.snapshot().trainings[0]).toMatchObject({ startTime: '17:00', soloResults: { a: { chain: 4 } } });
+  });
+
   it('deleteTraining smaže i skóre', async () => {
     const repo = memoryRepository();
     await repo.saveTraining(t);

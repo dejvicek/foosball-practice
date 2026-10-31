@@ -1,4 +1,5 @@
-import type { MatchId, Player, PlayerId, Score, Training } from '../domain/types';
+import type { SoloSlot } from '../domain/solo';
+import type { MatchId, Player, PlayerId, Score, SoloMetric, Training } from '../domain/types';
 
 export interface AppData {
   players: Player[];
@@ -18,4 +19,8 @@ export interface Repository {
   saveScore(trainingId: string, matchId: MatchId, s: Score): Promise<void>;
   /** Smaže skóre tréninku, jejichž match_id není v `keep`. */
   replaceScores(trainingId: string, keep: MatchId[]): Promise<void>;
+  /** Výsledek sólové části; null řádek smaže. */
+  saveSolo(trainingId: string, playerId: PlayerId, metric: SoloMetric, value: number | null): Promise<void>;
+  /** Smaže výsledky sólové části tréninku mimo `keep`. */
+  replaceSolo(trainingId: string, keep: SoloSlot[]): Promise<void>;
 }

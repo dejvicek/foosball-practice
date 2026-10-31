@@ -1,4 +1,4 @@
-import { isEmptyScore, playerFromRow, playerToRow, scoreToRow, trainingFromRow, trainingToRow } from './mapping';
+import { isEmptyScore, playerFromRow, playerToRow, scoreToRow, soloToRows, trainingFromRow, trainingToRow } from './mapping';
 import type { Player, Training } from '../domain/types';
 
 const player: Player = { id: 'p1', name: 'Honza', archived: false, order: 3 };
@@ -23,13 +23,25 @@ describe('mapping', () => {
       scoreToRow('t1', 'league|1|1|p1+p2vp3+p4', { ga: 6, gb: 2, la: 1, lb: 0 }),
       scoreToRow('jiny', 'x', { ga: 1, gb: 1 }),
     ];
-    expect(trainingFromRow(trainingToRow(training), rows)).toEqual(training);
+    expect(trainingFromRow(trainingToRow(training), rows, [])).toEqual(training);
   });
 
   it('trénink bez poznámky nemá klíč notes', () => {
     const { notes: _n, ...noNotes } = training;
-    const back = trainingFromRow(trainingToRow({ ...noNotes, scores: {} }), []);
+    const back = trainingFromRow(trainingToRow({ ...noNotes, scores: {} }), [], []);
     expect(back).toEqual({ ...noNotes, scores: {} });
+  });
+
+  it('čas začátku a výsledky sólové části tam a zpět', () => {
+    const t: Training = { ...training, startTime: '17:30', soloResults: { p1: { fiveBarControl: 2, setShooting: 0 }, p2: { warmupPasses: 18 } } };
+    const solo = [...soloToRows(t), { training_id: 'jiny', player_id: 'p1', metric: 'chain' as const, value: 3 }];
+    expect(trainingToRow(t).start_time).toBe('17:30');
+    expect(trainingFromRow(trainingToRow(t), [], solo)).toEqual({ ...t, scores: {} });
+  });
+
+  it('starý řádek bez start_time dostane 18:00', () => {
+    const row = { ...trainingToRow(training), start_time: null };
+    expect(trainingFromRow(row, [], []).startTime).toBe('18:00');
   });
 
   it('isEmptyScore: nula je platné skóre', () => {
