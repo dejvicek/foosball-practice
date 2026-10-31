@@ -65,6 +65,27 @@ describe('tabulka tréninku', () => {
     expect(within(rowOf('Kolo 1')).getByText('18:30')).toBeInTheDocument();
   });
 
+  it('vymazání skóre nechá výsledky sólové části', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const t = { ...training(8, 'team', 4), scores: { 'league|1|1|id1+id2vid3+id4': { ga: 6, gb: 2 } }, soloResults: { id1: { warmupPasses: 15 } } };
+    const repo = memoryRepository({ players: players(8), trainings: [t] });
+    render(<App repo={repo} />);
+    await user.click(await screen.findByRole('button', { name: 'Vymazat všechna skóre tohoto tréninku' }));
+    await vi.waitFor(() => expect(repo.snapshot().trainings[0].scores).toEqual({}));
+    expect(repo.snapshot().trainings[0].soloResults).toEqual({ id1: { warmupPasses: 15 } });
+    vi.restoreAllMocks();
+  });
+
+  it('po změně typu tréninku je zase rozbalený výchozí blok', async () => {
+    const user = userEvent.setup();
+    render(<App repo={memoryRepository({ players: players(8), trainings: [training(8, 'team', 4)] })} />);
+    await screen.findByRole('table', { name: 'Rozpis tréninku' });
+    await user.click(screen.getByRole('button', { name: /^Kolo 2/ }));
+    await user.selectOptions(screen.getByLabelText('Typ tréninku'), 'single');
+    expect(screen.getByLabelText('Rozehrání: rozehrávka ze zadku, stůl 1: H1')).toBeInTheDocument();
+  });
+
   it('jedničky n=5: v kole 1 počítá H5', async () => {
     render(<App repo={memoryRepository({ players: players(5), trainings: [training(5, 'single', 2)] })} />);
     await screen.findByRole('table', { name: 'Rozpis tréninku' });

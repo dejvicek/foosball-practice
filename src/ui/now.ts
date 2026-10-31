@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { todayIso } from './dates';
+import { TIMES } from '../domain/content';
 import type { Schedule, Training } from '../domain/types';
 
 /** Minuty od začátku tréninku, nebo null, když trénink není dnes. */
@@ -21,9 +22,15 @@ export function flatRows(s: Schedule): RowRef[] {
   return s.sections.flatMap((sec, si) => sec.rows.map((_, ri) => ({ section: si, row: ri })));
 }
 
-/** Řádek, který podle hodin právě běží (poslední s časem ≤ teď). */
+/** Konec tréninku v minutách od začátku (poslední blok + jeho délka). */
+export function scheduleEnd(s: Schedule): number {
+  const last = s.sections.at(-1)!.rows.at(-1)!;
+  return last.time + (s.mode === 'team' ? 15 : TIMES.single.recordMin);
+}
+
+/** Řádek, který podle hodin právě běží (poslední s časem ≤ teď); po konci tréninku null. */
 export function currentRow(s: Schedule, sinceStart: number | null): RowRef | null {
-  if (sinceStart === null || sinceStart < 0) return null;
+  if (sinceStart === null || sinceStart < 0 || sinceStart >= scheduleEnd(s)) return null;
   let found: RowRef | null = null;
   for (const ref of flatRows(s)) if (s.sections[ref.section].rows[ref.row].time <= sinceStart) found = ref;
   return found;
@@ -42,6 +49,23 @@ export function firstIncomplete(s: Schedule, t: Training): RowRef | null {
     }
   }
   return null;
+}
+
+/**
+ * Který blok rozbalit, když uživatel nic nevybral: běžící blok; o pauze ten, který právě
+ * skončil (dopsání výsledků); jinak první blok s chybějícím zápisem.
+ */
+export function defaultOpenRow(s: Schedule, t: Training, sinceStart: number | null): RowRef | null {
+  const cur = currentRow(s, sinceStart);
+  if (cur) {
+    const rows = flatRows(s);
+    const idx = rows.findIndex((r) => r.section === cur.section && r.row === cur.row);
+    for (let i = idx; i >= 0; i--) {
+      const r = rows[i];
+      if (s.sections[r.section].rows[r.row].kind !== 'break') return r;
+    }
+  }
+  return firstIncomplete(s, t);
 }
 
 /** Aktuální čas, obnovovaný každou minutu. */

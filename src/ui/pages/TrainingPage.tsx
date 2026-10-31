@@ -5,7 +5,7 @@ import { lostEntries, pruneEntries, toggleAttendee, type LostEntries } from '../
 import type { Training } from '../../domain/types';
 import { Explanations } from '../components/Explanations';
 import { TrainingTable } from '../components/TrainingTable';
-import { currentRow, firstIncomplete, minutesSinceStart, rowKey, useNow } from '../now';
+import { currentRow, defaultOpenRow, minutesSinceStart, rowKey, useNow } from '../now';
 import { StandingsView } from '../components/StandingsView';
 import { TrainingSetup } from '../components/TrainingSetup';
 import { formatDateLong } from '../dates';
@@ -55,14 +55,18 @@ export function TrainingPage({ store, id, navigate }: { store: AppStore; id: str
     );
   }
 
-  const current = schedule ? currentRow(schedule, minutesSinceStart(training.date, training.startTime, now)) : null;
-  const fallback = schedule ? (current ?? firstIncomplete(schedule, training)) : null;
+  const since = minutesSinceStart(training.date, training.startTime, now);
+  const current = schedule ? currentRow(schedule, since) : null;
+  const fallback = schedule ? defaultOpenRow(schedule, training, since) : null;
   const openKey = expanded ?? (fallback ? rowKey(fallback) : null);
 
   const apply = (next: Training) => {
     const msg = lossMessage(lostEntries(training, next));
     if (msg && !confirm(msg)) return;
-    if (configChanged(training, next)) store.updateTrainingConfig(pruneEntries(next));
+    if (configChanged(training, next)) {
+      store.updateTrainingConfig(pruneEntries(next));
+      setExpanded(null); // klíč řádku je pozice – po změně rozpisu platí výchozí rozbalení
+    }
     else store.saveTraining(next);
   };
 
@@ -110,7 +114,7 @@ export function TrainingPage({ store, id, navigate }: { store: AppStore; id: str
             scores={training.scores}
             attendees={training.attendees}
             names={names}
-            onClear={() => store.updateTrainingConfig({ ...training, scores: {}, soloResults: {} })}
+            onClear={() => store.updateTrainingConfig({ ...training, scores: {} })}
           />
         </>
       )}
