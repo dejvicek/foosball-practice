@@ -1,7 +1,7 @@
 import { sortedRoster } from './roster';
-import { DEFAULT_START } from './solo';
+import { DEFAULT_START, soloSlots, type SoloSlot } from './solo';
 import { buildSchedule, canBuildSchedule } from './schedule';
-import type { MatchId, Player, PlayerId, Score, Training } from './types';
+import type { MatchId, Player, PlayerId, Score, SoloMetric, SoloResults, Training } from './types';
 
 export function newTraining(id: string, today: string, last: Training | null): Training {
   return {
@@ -49,22 +49,68 @@ export function isEmptyScore(s: Score | undefined): boolean {
   return !s || [s.ga, s.gb, s.la, s.lb].every((v) => v === null || v === undefined);
 }
 
+function built(t: Training) {
+  return canBuildSchedule(t) ? buildSchedule(t) : null;
+}
+
+const slotKey = (playerId: PlayerId, metric: SoloMetric) => `${playerId}::${metric}`;
+
+function soloKeys(t: Training): Set<string> {
+  const s = built(t);
+  return new Set(s ? soloSlots(s).map((x) => slotKey(x.playerId, x.metric)) : []);
+}
+
 function matchIds(t: Training): Set<MatchId> {
-  return new Set(canBuildSchedule(t) ? buildSchedule(t).matches.map((m) => m.id) : []);
+  const s = built(t);
+  return new Set(s ? s.matches.map((m) => m.id) : []);
 }
 
-/** Skórované zápasy z `before`, které v rozpisu `after` nejsou. */
-export function lostScores(before: Training, after: Training): MatchId[] {
+function filledSolo(t: Training): SoloSlot[] {
+  const out: SoloSlot[] = [];
+  for (const [playerId, metrics] of Object.entries(t.soloResults))
+    for (const [metric, v] of Object.entries(metrics))
+      if (v !== null && v !== undefined) out.push({ playerId, metric: metric as SoloMetric });
+  return out;
+}
+
+export interface LostEntries {
+  scores: MatchId[];
+  solo: SoloSlot[];
+}
+
+/** Zapsané skóre a výsledky sólové části z `before`, které v rozpisu `after` nemají místo. */
+export function lostEntries(before: Training, after: Training): LostEntries {
   const ids = matchIds(after);
-  return Object.entries(before.scores)
-    .filter(([id, s]) => !isEmptyScore(s) && !ids.has(id))
-    .map(([id]) => id);
+  const keys = soloKeys(after);
+  return {
+    scores: Object.entries(before.scores)
+      .filter(([id, s]) => !isEmptyScore(s) && !ids.has(id))
+      .map(([id]) => id),
+    solo: filledSolo(before).filter((x) => !keys.has(slotKey(x.playerId, x.metric))),
+  };
 }
 
-export function pruneScores(t: Training): Training {
+/** Nechá jen skóre a výsledky, které v rozpisu tréninku mají místo. */
+export function pruneEntries(t: Training): Training {
   const ids = matchIds(t);
+  const keys = soloKeys(t);
   const scores = Object.fromEntries(Object.entries(t.scores).filter(([id]) => ids.has(id)));
-  return Object.keys(scores).length === Object.keys(t.scores).length ? t : { ...t, scores };
+  const soloResults: SoloResults = {};
+  for (const [p, metrics] of Object.entries(t.soloResults)) {
+    const kept = Object.fromEntries(Object.entries(metrics).filter(([m]) => keys.has(slotKey(p, m as SoloMetric))));
+    if (Object.keys(kept).length) soloResults[p] = kept;
+  }
+  return { ...t, scores, soloResults };
+}
+
+export function setSolo(t: Training, playerId: PlayerId, metric: SoloMetric, value: number | null): Training {
+  const mine = { ...t.soloResults[playerId] };
+  if (value === null) delete mine[metric];
+  else mine[metric] = value;
+  const soloResults = { ...t.soloResults };
+  if (Object.keys(mine).length) soloResults[playerId] = mine;
+  else delete soloResults[playerId];
+  return { ...t, soloResults };
 }
 
 export function setScore(t: Training, id: MatchId, field: keyof Score, value: number | null): Training {

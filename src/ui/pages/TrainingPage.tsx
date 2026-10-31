@@ -1,7 +1,7 @@
 import { addPlayer } from '../../domain/roster';
 import { useMemo } from 'react';
 import { buildSchedule, canBuildSchedule } from '../../domain/schedule';
-import { lostScores, pruneScores, toggleAttendee } from '../../domain/training';
+import { lostEntries, pruneEntries, toggleAttendee, type LostEntries } from '../../domain/training';
 import type { Training } from '../../domain/types';
 import { Explanations } from '../components/Explanations';
 import { ScheduleView } from '../components/ScheduleView';
@@ -12,6 +12,17 @@ import { MODE_LABEL, plural } from '../format';
 import type { AppStore } from '../useAppState';
 import type { Route } from '../useHashRoute';
 import { persistPlayers } from './PlayersPage';
+
+/** „Změna smaže skóre u N zápasů a M výsledků sólové části. Pokračovat?“ – null, když se nic nesmaže. */
+export function lossMessage(lost: LostEntries): string | null {
+  const n = lost.scores.length;
+  const m = lost.solo.length;
+  if (!n && !m) return null;
+  const parts: string[] = [];
+  if (n) parts.push(`skóre u ${n} ${plural(n, 'zápasu', 'zápasů', 'zápasů')}`);
+  if (m) parts.push(`${m} ${plural(m, 'výsledek', 'výsledky', 'výsledků')} sólové části`);
+  return `Změna smaže ${parts.join(' a ')}. Pokračovat?`;
+}
 
 const configChanged = (a: Training, b: Training) =>
   a.mode !== b.mode || a.tables !== b.tables || a.attendees.join() !== b.attendees.join();
@@ -40,9 +51,9 @@ export function TrainingPage({ store, id, navigate }: { store: AppStore; id: str
   }
 
   const apply = (next: Training) => {
-    const lost = lostScores(training, next);
-    if (lost.length && !confirm(`Změna smaže skóre u ${lost.length} ${plural(lost.length, 'zápasu', 'zápasů', 'zápasů')}. Pokračovat?`)) return;
-    if (configChanged(training, next)) store.updateTrainingConfig(pruneScores(next));
+    const msg = lossMessage(lostEntries(training, next));
+    if (msg && !confirm(msg)) return;
+    if (configChanged(training, next)) store.updateTrainingConfig(pruneEntries(next));
     else store.saveTraining(next);
   };
 

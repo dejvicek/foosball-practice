@@ -1,4 +1,4 @@
-import { lostScores, moveAttendee, newTraining, pruneScores, setScore, sortTrainings, toggleAttendee } from './training';
+import { lostEntries, moveAttendee, newTraining, pruneEntries, setScore, setSolo, sortTrainings, toggleAttendee } from './training';
 import type { Player, Training } from './types';
 import { H, training } from '../test/fixtures';
 
@@ -47,22 +47,22 @@ describe('skóre při změně konfigurace', () => {
   });
   it('lostScores vrátí skórované zápasy, které v novém rozpisu nejsou', () => {
     const after = { ...base, attendees: H(8).slice(1) }; // bez H1
-    expect(lostScores(base, after)).toEqual(['league|1|1|H1+H2vH3+H4']);
-    expect(lostScores(base, { ...base, notes: 'x' })).toEqual([]);
+    expect(lostEntries(base, after).scores).toEqual(['league|1|1|H1+H2vH3+H4']);
+    expect(lostEntries(base, { ...base, notes: 'x' }).scores).toEqual([]);
   });
   it('prázdné skóre se nepočítá jako ztracené', () => {
     const t = { ...base, scores: { 'league|1|1|H1+H2vH3+H4': { ga: null, gb: null } } };
-    expect(lostScores(t, { ...t, attendees: H(8).slice(1) })).toEqual([]);
+    expect(lostEntries(t, { ...t, attendees: H(8).slice(1) }).scores).toEqual([]);
   });
   it('pruneScores nechá jen skóre existujících zápasů', () => {
-    expect(pruneScores({ ...base, attendees: H(8).slice(1) }).scores).toEqual({});
-    expect(pruneScores(base).scores).toEqual(base.scores);
+    expect(pruneEntries({ ...base, attendees: H(8).slice(1) }).scores).toEqual({});
+    expect(pruneEntries(base).scores).toEqual(base.scores);
   });
   it('nepostavitelný trénink = žádné zápasy', () => {
-    expect(pruneScores({ ...base, attendees: H(3) }).scores).toEqual({});
+    expect(pruneEntries({ ...base, attendees: H(3) }).scores).toEqual({});
   });
   it('archivovaný hráč v přítomných nic nemaže (skóre je vázané na ID)', () => {
-    expect(pruneScores(base)).toEqual(base);
+    expect(pruneEntries(base)).toEqual(base);
   });
 });
 
@@ -70,5 +70,54 @@ describe('sortTrainings', () => {
   it('nejnovější první, stabilně', () => {
     const ts = [training('a', '2026-10-01', 'team', []), training('b', '2026-10-05', 'team', []), training('c', '2026-10-05', 'team', [])];
     expect(sortTrainings(ts).map((t) => t.id)).toEqual(['b', 'c', 'a']);
+  });
+});
+
+describe('výsledky sólové části při změně konfigurace', () => {
+  const base = (): Training => {
+    let t = training('t', '2026-10-31', 'team', H(8), 4);
+    t = setSolo(t, 'H1', 'fiveBarControl', 2);
+    t = setSolo(t, 'H1', 'backRodsBuildUp', 7);
+    t = setSolo(t, 'H2', 'warmupPasses', 15);
+    t = setSolo(t, 'H8', 'setShooting', 11);
+    return t;
+  };
+
+  it('setSolo nastaví a null smaže klíč i prázdného hráče', () => {
+    const t = setSolo(setSolo(training('t', '2026-10-31', 'team', H(8)), 'H1', 'chain', 3), 'H1', 'chain', null);
+    expect(t.soloResults).toEqual({});
+  });
+
+  it('odebraný hráč přijde o své výsledky (a se 7 hráči jsou jen 3 stanoviště)', () => {
+    const before = base();
+    const after = { ...before, attendees: H(7) };
+    expect(lostEntries(before, after).solo).toEqual([
+      { playerId: 'H1', metric: 'backRodsBuildUp' },
+      { playerId: 'H8', metric: 'setShooting' },
+    ]);
+    expect(pruneEntries(after).soloResults.H8).toBeUndefined();
+  });
+
+  it('4 → 3 stoly: zmizí jen stanoviště 4', () => {
+    const before = base();
+    const after = { ...before, tables: 3 as const };
+    expect(lostEntries(before, after).solo).toEqual([{ playerId: 'H1', metric: 'backRodsBuildUp' }]);
+    expect(pruneEntries(after).soloResults.H1).toEqual({ fiveBarControl: 2 });
+  });
+
+  it('týmový → jedničky: zůstane jen rozehrávka ze zadku', () => {
+    const after = pruneEntries({ ...base(), mode: 'single' as const, tables: 4 as const });
+    expect(after.soloResults).toEqual({ H1: { backRodsBuildUp: 7 } });
+  });
+
+  it('prohození pořadí nic nesmaže', () => {
+    const before = base();
+    const after = { ...before, attendees: [...H(8)].reverse() };
+    expect(lostEntries(before, after)).toEqual({ scores: [], solo: [] });
+  });
+
+  it('lostEntries vrací i ztracená skóre', () => {
+    const before = setScore(base(), 'league|1|1|H1+H2vH3+H4', 'ga', 6);
+    expect(lostEntries(before, { ...before, attendees: H(8).slice(1) }).scores).toEqual(['league|1|1|H1+H2vH3+H4']);
   });
 });

@@ -20,7 +20,7 @@ export interface AppStore {
   deletePlayer(id: PlayerId): void;
   /** Jen konfigurace tréninku; skóre nemění. */
   saveTraining(t: Training): void;
-  /** Konfigurace + smazání skóre zápasů, které v `t.scores` nejsou (po pruneScores). */
+  /** Konfigurace + smazání skóre zápasů, které v `t.scores` nejsou (po pruneEntries). */
   updateTrainingConfig(t: Training): void;
   deleteTraining(id: string): void;
   /** Lokálně hned, do úložiště s odstupem SCORE_DEBOUNCE_MS za zápas. */
