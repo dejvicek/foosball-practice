@@ -8,7 +8,7 @@ const players = (n: number): Player[] =>
   Array.from({ length: n }, (_, i) => ({ id: `id${i + 1}`, name: `H${i + 1}`, order: i, archived: false }));
 const training = (n: number, mode: Mode, tables: TableCount): Training => ({
   id: 't1', date: '2026-10-31', startTime: '18:00', mode, tables,
-  attendees: players(n).map((p) => p.id), scores: {}, soloResults: {},
+  attendees: players(n).map((p) => p.id), scores: {}, soloResults: {}, simSplit: 'order', simTeams: null,
 });
 const rowOf = (label: string) => screen.getByRole('button', { name: new RegExp(`^${label}`) }).closest('tr')!;
 
@@ -140,6 +140,35 @@ describe('tabulka tréninku', () => {
     const d = screen.getByRole('group', { name: 'Kolo 2, stůl 1' });
     expect(within(d).queryByLabelText('Kolo 2, stůl 1: ztráty vlevo')).toBeNull();
     expect(d).toHaveTextContent('Ztráty jsou v gólech');
+  });
+
+  it('týmy simulace: výchozí podle výkonu, zamknou se prvním výsledkem simulace', async () => {
+    const user = userEvent.setup();
+    const t = { ...training(8, 'team', 4), simSplit: 'performance' as const };
+    const repo = memoryRepository({ players: players(8), trainings: [t] });
+    render(<App repo={repo} />);
+    await screen.findByRole('table', { name: 'Rozpis tréninku' });
+    expect(screen.getByLabelText('Týmy pro simulaci')).toHaveValue('performance');
+    expect(screen.getByText('Tým A: H1, H4, H5, H8. Tým B: H2, H3, H6, H7.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /^1\. vlna/ }));
+    const sim = screen.getByRole('group', { name: '1. vlna, stůl 1' });
+    await user.type(within(sim).getByLabelText('1. vlna, stůl 1: góly vlevo'), '2');
+    await vi.waitFor(() => expect(repo.snapshot().trainings[0].simTeams).toEqual({ A: ['id1', 'id4', 'id5', 'id8'], B: ['id2', 'id3', 'id6', 'id7'] }));
+
+    // výsledek ve scénářové lize už týmy nepřehází
+    await user.click(screen.getByRole('button', { name: /^Kolo 1/ }));
+    await user.type(screen.getByLabelText('Kolo 1, stůl 2: góly vlevo'), '0');
+    await user.type(screen.getByLabelText('Kolo 1, stůl 2: góly vpravo'), '6');
+    expect(screen.getByText('Tým A: H1, H4, H5, H8. Tým B: H2, H3, H6, H7.')).toBeInTheDocument();
+  });
+
+  it('přepnutí na nominační pořadí', async () => {
+    const user = userEvent.setup();
+    render(<App repo={memoryRepository({ players: players(8), trainings: [{ ...training(8, 'team', 4), simSplit: 'performance' as const }] })} />);
+    await screen.findByRole('table', { name: 'Rozpis tréninku' });
+    await user.selectOptions(screen.getByLabelText('Týmy pro simulaci'), 'order');
+    expect(screen.getByText('Tým A: H1, H2, H3, H4. Tým B: H5, H6, H7, H8.')).toBeInTheDocument();
   });
 
   it('jedničky n=5: v kole 1 počítá H5', async () => {

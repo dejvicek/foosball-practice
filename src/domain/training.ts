@@ -13,6 +13,8 @@ export function newTraining(id: string, today: string, last: Training | null): T
     attendees: [],
     scores: {},
     soloResults: {},
+    simSplit: last?.simSplit ?? 'performance',
+    simTeams: null,
   };
 }
 

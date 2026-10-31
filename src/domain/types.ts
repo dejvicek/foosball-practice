@@ -22,6 +22,13 @@ export type SoloMetric = 'warmupPasses' | 'fiveBarControl' | 'setShooting' | 'bl
 /** Výsledky sólové části: hráč → metrika → hodnota (PRD 5.8). */
 export type SoloResults = Record<PlayerId, Partial<Record<SoloMetric, number>>>;
 
+/** Jak rozdělit přítomné na týmy simulace ligového kola. */
+export type SimSplit = 'performance' | 'order';
+export interface SimTeams {
+  A: PlayerId[];
+  B: PlayerId[];
+}
+
 export interface Training {
   id: string;
   date: string; // YYYY-MM-DD
@@ -33,6 +40,10 @@ export interface Training {
   attendees: PlayerId[];
   scores: Record<MatchId, Score>;
   soloResults: SoloResults;
+  /** Výchozí 'performance': vyrovnaně podle výkonu ve scénářové lize tohoto tréninku. */
+  simSplit: SimSplit;
+  /** Zamčené týmy simulace (od prvního zapsaného výsledku simulace), jinak null. */
+  simTeams: SimTeams | null;
   notes?: string;
 }
 

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { sortedRoster, type RosterError } from '../../domain/roster';
 import { MAX_PLAYERS, MIN_PLAYERS } from '../../domain/schedule';
 import { moveAttendee, toggleAttendee } from '../../domain/training';
-import type { Mode, Player, TableCount, Training } from '../../domain/types';
+import type { Mode, Player, SimSplit, TableCount, Training } from '../../domain/types';
 import { MODE_OPTION, plural } from '../format';
 import { ROSTER_ERRORS } from '../pages/PlayersPage';
 
@@ -55,6 +55,19 @@ export function TrainingSetup({ training, players, onChange, onAddPlayer }: Prop
             <option value="single">{MODE_OPTION.single}</option>
           </select>
         </div>
+        {training.mode === 'team' && (
+          <div className="field">
+            <label htmlFor="t-split">Týmy pro simulaci</label>
+            <select
+              id="t-split"
+              value={training.simSplit}
+              onChange={(e) => onChange({ ...training, simSplit: e.target.value as SimSplit, simTeams: null })}
+            >
+              <option value="performance">Vyrovnaně podle výkonu v tréninku</option>
+              <option value="order">Podle nominačního pořadí</option>
+            </select>
+          </div>
+        )}
         <div className="field">
           <label htmlFor="t-tables">Počet stolů</label>
           <select id="t-tables" value={training.tables} onChange={(e) => onChange({ ...training, tables: Number(e.target.value) as TableCount })}>

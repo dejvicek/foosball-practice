@@ -84,6 +84,21 @@ export function TrainingTable({ schedule: s, training, names, current, expanded,
                 <th colSpan={cols} scope="colgroup">
                   {sec.title}
                   {sec.subtitle && <span> – {sec.subtitle}</span>}
+                  {sec.id === 'sim' && s.teams && (
+                    <span className="sec-teams">
+                      <span>
+                        Tým A: {s.teams.A.map((p) => names[p] ?? '?').join(', ')}. Tým B:{' '}
+                        {s.teams.B.map((p) => names[p] ?? '?').join(', ')}.
+                      </span>
+                      <span className="sec-lock">
+                        {training.simTeams
+                          ? ' Týmy jsou zamčené (už je zapsaný výsledek simulace).'
+                          : training.simSplit === 'performance'
+                            ? ' Vyrovnaně podle výkonu ve scénářové lize; zamknou se prvním výsledkem simulace.'
+                            : ' Podle nominačního pořadí.'}
+                      </span>
+                    </span>
+                  )}
                 </th>
               </tr>
               {sec.rows.map((row, ri) => {

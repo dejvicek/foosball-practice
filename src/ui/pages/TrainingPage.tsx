@@ -26,20 +26,13 @@ export function lossMessage(lost: LostEntries): string | null {
 }
 
 const configChanged = (a: Training, b: Training) =>
-  a.mode !== b.mode || a.tables !== b.tables || a.attendees.join() !== b.attendees.join();
+  a.mode !== b.mode || a.tables !== b.tables || a.attendees.join() !== b.attendees.join() || a.simSplit !== b.simSplit;
 // Pozn.: startTime ani datum rozpis nemění, ukládají se přes saveTraining.
 
 export function TrainingPage({ store, id, navigate }: { store: AppStore; id: string; navigate: (r: Route) => void }) {
   const training = store.data.trainings.find((t) => t.id === id);
-  const mode = training?.mode;
-  const tables = training?.tables;
-  const attendeesKey = training?.attendees.join(',');
-  const schedule = useMemo(
-    () => (training && canBuildSchedule(training) ? buildSchedule(training) : null),
-    // rozpis závisí jen na typu, stolech a přítomných
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mode, tables, attendeesKey],
-  );
+  // Rozpis závisí i na skóre: týmy simulace se dělí podle výkonu ve scénářové lize.
+  const schedule = useMemo(() => (training && canBuildSchedule(training) ? buildSchedule(training) : null), [training]);
   const names = useMemo(() => Object.fromEntries(store.data.players.map((p) => [p.id, p.name])), [store.data.players]);
   const now = useNow();
   // null = výchozí (běžící / první nevyplněný blok), '' = vše sbalené, jinak klíč řádku
@@ -60,7 +53,9 @@ export function TrainingPage({ store, id, navigate }: { store: AppStore; id: str
   const fallback = schedule ? defaultOpenRow(schedule, training, since) : null;
   const openKey = expanded ?? (fallback ? rowKey(fallback) : null);
 
-  const apply = (next: Training) => {
+  const apply = (changed: Training) => {
+    // Změna sestavy odemkne zamčené týmy simulace (přepočítají se).
+    const next = configChanged(training, changed) ? { ...changed, simTeams: null } : changed;
     const msg = lossMessage(lostEntries(training, next));
     if (msg && !confirm(msg)) return;
     if (configChanged(training, next)) {
@@ -100,7 +95,13 @@ export function TrainingPage({ store, id, navigate }: { store: AppStore; id: str
             current={current}
             expanded={openKey}
             onToggle={(key) => setExpanded(openKey === key ? '' : key)}
-            onScore={(matchId, s) => store.saveScore(training.id, matchId, s)}
+            onScore={(matchId, s) => {
+              const m = schedule.matches.find((x) => x.id === matchId);
+              // První výsledek simulace zamkne týmy, aby je pozdější opravy ligy nepřeházely.
+              if (m?.block === 'sim' && !training.simTeams && schedule.teams)
+                store.saveTraining({ ...training, simTeams: schedule.teams });
+              store.saveScore(training.id, matchId, s);
+            }}
             onSolo={(playerId, metric, value) => store.saveSolo(training.id, playerId, metric, value)}
           />
           <div className="actions-row no-print">

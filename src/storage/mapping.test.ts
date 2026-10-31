@@ -4,7 +4,7 @@ import type { Player, Training } from '../domain/types';
 const player: Player = { id: 'p1', name: 'Honza', archived: false, order: 3 };
 const training: Training = {
   id: 't1',
-  date: '2026-10-31', startTime: '18:00', soloResults: {},
+  date: '2026-10-31', startTime: '18:00', soloResults: {}, simSplit: 'order', simTeams: null,
   mode: 'team',
   tables: 4,
   attendees: ['p1', 'p2', 'p3', 'p4'],
@@ -39,9 +39,14 @@ describe('mapping', () => {
     expect(trainingFromRow(trainingToRow(t), [], solo)).toEqual({ ...t, scores: {} });
   });
 
-  it('starý řádek bez start_time dostane 18:00', () => {
-    const row = { ...trainingToRow(training), start_time: null };
-    expect(trainingFromRow(row, [], []).startTime).toBe('18:00');
+  it('starý řádek bez start_time dostane 18:00, bez sim_split rozdělení podle výkonu', () => {
+    const row = { ...trainingToRow(training), start_time: null, sim_split: null, sim_teams: null };
+    expect(trainingFromRow(row, [], [])).toMatchObject({ startTime: '18:00', simSplit: 'performance', simTeams: null });
+  });
+
+  it('zamčené týmy tam a zpět', () => {
+    const t: Training = { ...training, scores: {}, simSplit: 'performance', simTeams: { A: ['p1', 'p3'], B: ['p2', 'p4'] } };
+    expect(trainingFromRow(trainingToRow(t), [], [])).toEqual(t);
   });
 
   it('isEmptyScore: nula je platné skóre', () => {

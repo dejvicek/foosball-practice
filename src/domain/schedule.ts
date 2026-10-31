@@ -1,7 +1,8 @@
 import { assign, type Pairing } from './assign';
 import { ROUNDS, STATIONS, TIMES, type RoundDef } from './content';
 import { groups, rotate } from './rotation';
-import { buildSimulation } from './simulation';
+import { balancedSplit, simulateTeams } from './simulation';
+import { computeStandings } from './standings';
 import { STATION_METRICS } from './solo';
 import type {
   Block,
@@ -21,7 +22,8 @@ import type {
 export const MIN_PLAYERS = 4;
 export const MAX_PLAYERS = 13;
 
-export type ScheduleInput = Pick<Training, 'mode' | 'tables' | 'attendees'>;
+export type ScheduleInput = Pick<Training, 'mode' | 'tables' | 'attendees'> &
+  Partial<Pick<Training, 'simSplit' | 'simTeams' | 'scores'>>;
 
 export function canBuildSchedule(t: ScheduleInput): boolean {
   return t.attendees.length >= MIN_PLAYERS && t.attendees.length <= MAX_PLAYERS;
@@ -106,7 +108,23 @@ function groupRows(
   return { rows, g, end: start + rotations * slotMin };
 }
 
-function buildTeam(players: PlayerId[], tables: TableCount): Schedule {
+/** Týmy simulace: zamčené → podle nominačního pořadí → vyrovnaně podle výkonu ve scénářové lize. */
+function simTeamsFor(input: ScheduleInput, leagueMatches: Match[]): { A: PlayerId[]; B: PlayerId[] } {
+  const players = input.attendees;
+  const locked = input.simTeams;
+  if (locked && [...locked.A, ...locked.B].sort().join() === [...players].sort().join()) return locked;
+  if (input.simSplit !== 'performance') {
+    const half = Math.ceil(players.length / 2);
+    return { A: players.slice(0, half), B: players.slice(half) };
+  }
+  const partial = { mode: 'team', matches: leagueMatches } as Schedule;
+  const ranked = computeStandings(partial, input.scores ?? {}, players).rows.map((r) => r.playerId);
+  return balancedSplit(ranked);
+}
+
+function buildTeam(input: ScheduleInput): Schedule {
+  const players = input.attendees;
+  const tables = input.tables;
   const matches: Match[] = [];
   const t = TIMES.team;
 
@@ -142,7 +160,8 @@ function buildTeam(players: PlayerId[], tables: TableCount): Schedule {
     rows: leagueRows,
   };
 
-  const sim = buildSimulation(players, tables);
+  const teams = simTeamsFor(input, matches.filter((m) => m.block === 'league'));
+  const sim = { ...simulateTeams(teams.A, teams.B, tables), A: teams.A, B: teams.B };
   const simStart = start + t.simBreak;
   const waveRule = `${t.wave} min, ligový formát`;
   const simSection: ScheduleSection = {
@@ -212,5 +231,5 @@ export function buildSchedule(t: ScheduleInput): Schedule {
   if (!canBuildSchedule(t)) {
     throw new Error(`Rozpis umí ${MIN_PLAYERS}–${MAX_PLAYERS} hráčů, přítomno ${t.attendees.length}.`);
   }
-  return t.mode === 'team' ? buildTeam(t.attendees, t.tables) : buildSingles(t.attendees, t.tables);
+  return t.mode === 'team' ? buildTeam(t) : buildSingles(t.attendees, t.tables);
 }

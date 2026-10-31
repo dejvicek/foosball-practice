@@ -42,8 +42,22 @@ export function wave(A: PlayerId[], B: PlayerId[], tables: number, prevDoubles: 
 /** Tým A = prvních ceil(n/2) hráčů v nominačním pořadí, B = zbytek. Dvě vlny. */
 export function buildSimulation(players: PlayerId[], tables: number) {
   const half = Math.ceil(players.length / 2);
-  const A = players.slice(0, half);
-  const B = players.slice(half);
+  return simulateTeams(players.slice(0, half), players.slice(half), tables);
+}
+
+/**
+ * Vyrovnané týmy z pořadí podle výkonu: 1. do A, 2.–3. do B, 4.–5. do A, …
+ * Uvnitř týmu zůstává pořadí podle výkonu (silnější dřív do singlu).
+ */
+export function balancedSplit(ranked: PlayerId[]): { A: PlayerId[]; B: PlayerId[] } {
+  const A: PlayerId[] = [];
+  const B: PlayerId[] = [];
+  ranked.forEach((p, i) => (i % 4 === 0 || i % 4 === 3 ? A : B).push(p));
+  return { A, B };
+}
+
+/** Dvě vlny simulace pro dané týmy (PRD 5.3). */
+export function simulateTeams(A: PlayerId[], B: PlayerId[], tables: number) {
   const wave1 = wave(A, B, tables, null);
   const A2 = wave1.restA.concat(A.filter((p) => !wave1.restA.includes(p)));
   const B2 = wave1.restB.concat(B.filter((p) => !wave1.restB.includes(p)));

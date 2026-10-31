@@ -211,6 +211,8 @@ details.attendance .add-form { margin: 8px 0 0; }
   border-top: 1px solid var(--line-strong);
 }
 .plan .section-row th span { color: var(--muted); font-weight: 500; }
+.plan .section-row .sec-teams { display: block; margin-top: 2px; color: var(--ink); font-weight: 600; }
+.plan .section-row .sec-teams .sec-lock { color: var(--muted); font-weight: 400; }
 .plan tbody tr:not(.section-row):not(.expand):not(.break) { cursor: pointer; }
 .plan tbody tr:not(.section-row):not(.expand):not(.break):not(.current):hover td { background: var(--bg); }
 .plan tr.past td { color: var(--muted); }

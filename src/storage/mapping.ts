@@ -1,6 +1,6 @@
 import { DEFAULT_START } from '../domain/solo';
 import { isEmptyScore } from '../domain/training';
-import type { MatchId, Mode, Player, PlayerId, Score, SoloMetric, SoloResults, TableCount, Training } from '../domain/types';
+import type { MatchId, Mode, Player, PlayerId, Score, SimSplit, SimTeams, SoloMetric, SoloResults, TableCount, Training } from '../domain/types';
 
 export { isEmptyScore };
 
@@ -15,6 +15,8 @@ export interface TrainingRow {
   id: string;
   date: string;
   start_time: string | null;
+  sim_split: SimSplit | null;
+  sim_teams: SimTeams | null;
   mode: Mode;
   tables: number;
   attendees: string[];
@@ -55,6 +57,8 @@ export const trainingToRow = (t: Training): TrainingRow => ({
   id: t.id,
   date: t.date,
   start_time: t.startTime,
+  sim_split: t.simSplit,
+  sim_teams: t.simTeams,
   mode: t.mode,
   tables: t.tables,
   attendees: t.attendees,
@@ -84,6 +88,8 @@ export function trainingFromRow(r: TrainingRow, scores: ScoreRow[], solo: SoloRo
     attendees: r.attendees ?? [],
     scores: Object.fromEntries(scores.filter((s) => s.training_id === r.id).map((s) => [s.match_id, scoreFromRow(s)])),
     soloResults,
+    simSplit: r.sim_split === 'order' ? 'order' : 'performance',
+    simTeams: r.sim_teams ?? null,
   };
   if (r.notes !== null && r.notes !== undefined) t.notes = r.notes;
   return t;
