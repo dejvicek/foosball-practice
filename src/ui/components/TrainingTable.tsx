@@ -28,12 +28,22 @@ function CompactCell({ cell, t, names }: { cell: Cell; t: Training; names: Recor
   const m = cell.match;
   const s = t.scores[m.id];
   const has = s && s.ga !== undefined && s.ga !== null && s.gb !== undefined && s.gb !== null;
+  const st = m.start ?? [0, 0];
+  const wallSide = m.wall === 'A' ? m.sideA : m.wall === 'B' ? m.sideB : null;
   return (
     <>
       <span className="cell-names">
         {nm(m.sideA)} <span className="vs">vs</span> {nm(m.sideB)}
       </span>
-      <span className={has ? 'cell-score' : 'cell-score empty'}>{has ? `${s!.ga}:${s!.gb}` : '–:–'}</span>
+      {wallSide && <span className="cell-sub">Zeď: {nm(wallSide)}</span>}
+      <span className={has ? 'cell-score' : 'cell-score empty'}>
+        {has ? `${s!.ga! + st[0]}:${s!.gb! + st[1]}` : m.start ? `${st[0]}:${st[1]} start` : '–:–'}
+      </span>
+      {has && m.start && (
+        <span className="cell-sub">
+          odehráno {s!.ga}:{s!.gb}
+        </span>
+      )}
     </>
   );
 }

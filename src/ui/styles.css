@@ -249,6 +249,12 @@ details.attendance .add-form { margin: 8px 0 0; }
 .entry-warn { color: var(--warn); font-weight: 600; }
 
 /* Výsledek zápasu */
+.tag { display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; vertical-align: 1px; }
+.tag-wall { background: var(--ink); color: var(--surface); }
+.tag-break { border: 1px solid var(--ink); color: var(--ink); }
+.tag-start { background: var(--felt-soft); color: var(--felt); border: 1px solid var(--felt); }
+.played { margin: 2px 0 0; text-align: right; font-weight: 700; color: var(--felt); font-size: 13px; }
+.entry-ref { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
 .result { display: grid; gap: 4px; }
 .result-side { display: grid; grid-template-columns: 14px 1fr auto; align-items: center; gap: 8px; }
 .side-tag { font-size: 11px; color: var(--muted); font-weight: 600; }

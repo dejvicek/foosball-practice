@@ -9,27 +9,31 @@ interface Props {
   withLosses: boolean;
   /** Jména levé a pravé strany; zobrazí se u svého políčka skóre. */
   sides?: [ReactNode, ReactNode];
+  /** Scénářový start: zapisuje se stav na stole, ukládají se odehrané góly. */
+  start?: [number, number];
+  /** Která strana hraje Zeď. */
+  wall?: 'A' | 'B';
   onChange(next: Score): void;
 }
 
-const show = (v: number | null | undefined) => (v === null || v === undefined ? '' : String(v));
+const show = (v: number | null | undefined, offset = 0) => (v === null || v === undefined ? '' : String(v + offset));
 
-export function ScoreInputs({ label, score, maxGoals, withLosses, sides, onChange }: Props) {
+export function ScoreInputs({ label, score, maxGoals, withLosses, sides, start, wall, onChange }: Props) {
   const s = score ?? {};
-  const input = (field: keyof Score, max: number, title: string, className: string) => (
+  const field = (key: keyof Score, max: number, title: string, className: string, offset = 0) => (
     <input
       className={className}
       type="number"
       inputMode="numeric"
-      min={0}
+      min={offset}
       max={max}
-      placeholder="–"
+      placeholder={offset ? String(offset) : '–'}
       aria-label={`${label}: ${title}`}
-      value={show(s[field])}
+      value={show(s[key], offset)}
       onChange={(e) => {
         const v = parseScoreValue(e.target.value);
-        if (v !== null && v > max) return; // překlep nad maximum se nepřijme
-        onChange({ ...s, [field]: v });
+        if (v !== null && (v > max || v < offset)) return; // překlep mimo rozsah se nepřijme
+        onChange({ ...s, [key]: v === null ? null : v - offset });
       }}
     />
   );
@@ -37,24 +41,39 @@ export function ScoreInputs({ label, score, maxGoals, withLosses, sides, onChang
   const gb = s.gb ?? null;
   const done = ga !== null && gb !== null;
   const won = (mine: number | null, theirs: number | null) => (done && (mine as number) > (theirs as number) ? ' won' : '');
+  const tags = (side: 'A' | 'B') => (
+    <>
+      {wall && <span className={wall === side ? 'tag tag-wall' : 'tag tag-break'}>{wall === side ? 'Zeď' : 'Láme zeď'}</span>}
+      {start && <span className="tag tag-start">začíná {start[side === 'A' ? 0 : 1]}</span>}
+    </>
+  );
   return (
     <div className="result">
       <div className={`result-side${won(ga, gb)}`}>
         <span className="side-tag" aria-hidden="true">L</span>
-        <span className="side-name">{sides?.[0]}</span>
-        {input('ga', maxGoals, 'góly vlevo', 'goal')}
+        <span className="side-name">
+          {sides?.[0]} {tags('A')}
+        </span>
+        {field('ga', maxGoals, 'góly vlevo', 'goal', start?.[0] ?? 0)}
       </div>
       <div className={`result-side${won(gb, ga)}`}>
         <span className="side-tag" aria-hidden="true">P</span>
-        <span className="side-name">{sides?.[1]}</span>
-        {input('gb', maxGoals, 'góly vpravo', 'goal')}
+        <span className="side-name">
+          {sides?.[1]} {tags('B')}
+        </span>
+        {field('gb', maxGoals, 'góly vpravo', 'goal', start?.[1] ?? 0)}
       </div>
+      {start && done && (
+        <p className="played">
+          Odehráno {ga} : {gb}
+        </p>
+      )}
       {withLosses && (
         <div className="losses">
           <span>Ztráty</span>
-          {input('la', 30, 'ztráty vlevo', 'loss')}
+          {field('la', 30, 'ztráty vlevo', 'loss')}
           <span aria-hidden="true">/</span>
-          {input('lb', 30, 'ztráty vpravo', 'loss')}
+          {field('lb', 30, 'ztráty vpravo', 'loss')}
         </div>
       )}
     </div>

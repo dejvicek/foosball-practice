@@ -57,10 +57,21 @@ export function BlockEntry({ row, waitingLabel, training, names, onScore, onSolo
                   label={label}
                   score={training.scores[m.id]}
                   maxGoals={m.block === 'sim' ? 2 : 10}
-                  withLosses={m.block === 'league'}
+                  withLosses={!!m.trackLosses}
                   sides={[nm(m.sideA), nm(m.sideB)]}
+                  start={m.start}
+                  wall={m.wall}
                   onChange={(s) => onScore(m.id, s)}
                 />
+                {m.block === 'league' && (
+                  <p className="entry-ref">
+                    {m.lossTax
+                      ? `Ztráty jsou v gólech (Daň za ztrátu).${m.referee ? ` Rozhodčí: ${names[m.referee] ?? '?'}` : ''}`
+                      : m.referee
+                        ? `Rozhodčí: ${names[m.referee] ?? '?'}, čárkuje ztráty`
+                        : 'Bez rozhodčího, ztráty se nezapisují'}
+                  </p>
+                )}
               </div>
             );
           }
@@ -100,17 +111,15 @@ export function BlockEntry({ row, waitingLabel, training, names, onScore, onSolo
         })}
       </div>
       <div className="entry-foot">
-        {scenario && <p className="entry-warn">Zapisuj jen odehrané góly, ne stav na stole.</p>}
+        {scenario && <p className="entry-warn">Zapiš konečný stav na stole, startovní góly appka odečte sama.</p>}
         {rules.map((r, i) => (
           <p key={i}>{r}</p>
         ))}
-        <p className="muted">
-          {row.waiting.length
-            ? `${waitingLabel}: ${row.waiting.map((p) => names[p] ?? '?').join(', ')}`
-            : row.kind === 'matches'
-              ? 'Nikdo nečeká, ztráty počítá brankář soupeře.'
-              : ''}
-        </p>
+        {row.waiting.length > 0 && (
+          <p className="muted">
+            {waitingLabel}: {row.waiting.map((p) => names[p] ?? '?').join(', ')}
+          </p>
+        )}
       </div>
     </div>
   );

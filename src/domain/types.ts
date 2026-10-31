@@ -47,6 +47,16 @@ export interface Match {
   kind: MatchKind;
   sideA: PlayerId[];
   sideB: PlayerId[];
+  /** Rozhodčí u stolu (čekající hráči popořadě ke stolům 1, 2, …). */
+  referee?: PlayerId;
+  /** Zapisují se ztráty: jen mimo Daň a jen u stolu s rozhodčím. */
+  trackLosses?: boolean;
+  /** Kolo s Daní za ztrátu. */
+  lossTax?: boolean;
+  /** Strana, která hraje Zeď. */
+  wall?: 'A' | 'B';
+  /** Scénářový start [levá, pravá]; zapisují se jen odehrané góly. */
+  start?: [number, number];
 }
 
 export type Cell =

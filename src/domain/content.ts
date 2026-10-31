@@ -10,16 +10,22 @@ export const STATIONS: string[] = [
 export interface RoundDef {
   name: string;
   min: number;
+  /** Daň za ztrátu: ztráty jsou v gólech, samostatně se nezapisují. */
+  lossTax: boolean;
+  /** Která strana hraje Zeď (A = levá, B = pravá). */
+  wall?: 'A' | 'B';
+  /** Scénářový start [levá, pravá]. */
+  start?: [number, number];
 }
 
 export const ROUNDS: RoundDef[] = [
-  { name: 'Normální leg', min: 8 },
-  { name: 'Daň za ztrátu', min: 8 },
-  { name: 'Zeď', min: 8 },
-  { name: 'Zeď, otočené role', min: 8 },
-  { name: 'Start 0:3 + daň (levá strana začíná 0:3)', min: 5 },
-  { name: 'Start 4:4', min: 3 },
-  { name: 'Start 5:5, o 2 góly, strop 10', min: 3 },
+  { name: 'Normální leg', min: 8, lossTax: false },
+  { name: 'Daň za ztrátu', min: 8, lossTax: true },
+  { name: 'Zeď', min: 8, lossTax: false, wall: 'A' },
+  { name: 'Zeď, otočené role', min: 8, lossTax: false, wall: 'B' },
+  { name: 'Start 0:3 + daň (levá strana začíná 0:3)', min: 5, lossTax: true, start: [0, 3] },
+  { name: 'Start 4:4', min: 3, lossTax: false, start: [4, 4] },
+  { name: 'Start 5:5, o 2 góly, strop 10', min: 3, lossTax: false, start: [5, 5] },
 ];
 
 /** Časové konstanty v minutách (PRD 4.1–4.3, 5.4). */
@@ -157,7 +163,7 @@ export const EXPLANATIONS: ExplanationGroup[] = [
         "name": "Daň za ztrátu",
         "parts": [
           {
-            "text": "Ztracený míč z kontrolované pozice = gól pro soupeře. Pětka: máš míč na pětce a soupeř ho získá, aniž bys vystřelil. Zadní tyče: míč byl v brance nebo na dvojce zastavený aspoň 1 sekundu a cokoli z něj vznikne skončí u soupeře bez tvé střely. Nepočítá se odražený míč hned po bloku. Ztráty z pětky a ze zadku se zapisují zvlášť."
+            "text": "Ztracený míč z kontrolované pozice = gól pro soupeře. Pětka: máš míč na pětce a soupeř ho získá, aniž bys vystřelil. Zadní tyče: míč byl v brance nebo na dvojce zastavený aspoň 1 sekundu a cokoli z něj vznikne skončí u soupeře bez tvé střely. Nepočítá se odražený míč hned po bloku. Ztráty se samostatně nezapisují, jsou už v gólech."
           }
         ]
       },
@@ -165,7 +171,7 @@ export const EXPLANATIONS: ExplanationGroup[] = [
         "name": "Zeď",
         "parts": [
           {
-            "text": "Jeden tým má celý leg zakázáno riskovat: drží míč, nikam nespěchá, žádné riskantní přihrávky, střílí jen z jistoty. Druhý tým ho musí prolomit. V dalším kole se role otočí. Simulace soupeře, který nás v lize trestá, když zrychlíme."
+            "text": "Jeden tým má celý leg zakázáno riskovat: drží míč, nikam nespěchá, žádné riskantní přihrávky, střílí jen z jistoty. Druhý tým ho musí prolomit. V kole 3 hraje zeď levá strana, v kole 4 pravá. Simulace soupeře, který nás v lize trestá, když zrychlíme."
           }
         ]
       },
@@ -173,7 +179,7 @@ export const EXPLANATIONS: ExplanationGroup[] = [
         "name": "Start 0:3",
         "parts": [
           {
-            "text": "Leg začíná za stavu 0:3, pozadu je strana uvedená v rozpisu vlevo. Trénuje nehrát odevzdaně, když prohráváme. Hraje se s Daní za ztrátu. Do skóre se zapisují jen góly odehrané v kole (konec 6:4 ze startu 0:3 = zápis 6:1)."
+            "text": "Leg začíná za stavu 0:3, pozadu je strana uvedená v rozpisu vlevo. Trénuje nehrát odevzdaně, když prohráváme. Hraje se s Daní za ztrátu. Zapisuje se stav na stole (konec 6:4), appka sama započítá jen odehrané góly (6:1)."
           }
         ]
       },
@@ -181,7 +187,7 @@ export const EXPLANATIONS: ExplanationGroup[] = [
         "name": "Start 4:4",
         "parts": [
           {
-            "text": "Koncovka těsného legu, zbývají 2 až 4 góly. Zapisují se jen odehrané góly (konec 6:4 = zápis 2:0)."
+            "text": "Koncovka těsného legu, zbývají 2 až 4 góly. Zapisuje se stav na stole (konec 6:4), appka započítá jen odehrané góly (2:0)."
           }
         ]
       },
@@ -189,7 +195,7 @@ export const EXPLANATIONS: ExplanationGroup[] = [
         "name": "Start 5:5, o 2 góly, strop 10",
         "parts": [
           {
-            "text": "Přesně třetí set z ligy. Vyhrává, kdo získá náskok 2 gólů, nejvýš do 10. Zapisují se jen odehrané góly (konec 7:5 = zápis 2:0)."
+            "text": "Přesně třetí set z ligy. Vyhrává, kdo získá náskok 2 gólů, nejvýš do 10. Zapisuje se stav na stole (konec 7:5), appka započítá jen odehrané góly (2:0)."
           }
         ]
       },
@@ -205,7 +211,7 @@ export const EXPLANATIONS: ExplanationGroup[] = [
         "name": "Role rozhodčího",
         "parts": [
           {
-            "text": "Kdo zrovna nehraje, čárkuje ztráty (v každém kole, i bez Daně), hlídá kolo Zeď a čas kola, rozhoduje sporné ztráty. Rozhodnutí platí, nediskutuje se. Když nikdo nečeká, ztráty počítá brankář soupeřící dvojice."
+            "text": "Kdo zrovna nehraje, je rozhodčí: první čekající u stolu 1, druhý u stolu 2 a tak dál. Rozhodčí čárkuje ztráty (v kolech bez Daně), hlídá kolo Zeď a čas kola, rozhoduje sporné ztráty. Rozhodnutí platí, nediskutuje se. U stolu bez rozhodčího se ztráty nezapisují; v kolech s Daní jsou ztráty rovnou v gólech."
           },
           {
             "text": "Kolo končí dohraným legem, čas je jen pojistka pro rotaci: když vyprší, zapíše se aktuální stav a jde se dál. Aby se nedalo hrát na čas, rozhodčí vymáhá limity držení míče (10 s na pětce, 15 s na trojce). Pomalá hra je záměr jen v kole Zeď."

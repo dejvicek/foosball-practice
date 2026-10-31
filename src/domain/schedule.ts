@@ -1,5 +1,5 @@
 import { assign, type Pairing } from './assign';
-import { ROUNDS, STATIONS, TIMES } from './content';
+import { ROUNDS, STATIONS, TIMES, type RoundDef } from './content';
 import { groups, rotate } from './rotation';
 import { buildSimulation } from './simulation';
 import { STATION_METRICS } from './solo';
@@ -49,6 +49,7 @@ function matchRow(
   rule: string,
   tables: TableCount,
   out: Match[],
+  rd?: RoundDef,
 ): ScheduleRow {
   const cells: Cell[] = pairings.map((p, j) => {
     const match: Match = {
@@ -60,6 +61,14 @@ function matchRow(
       sideA: p.a,
       sideB: p.b,
     };
+    if (rd) {
+      const referee = waiting[j];
+      if (referee) match.referee = referee;
+      match.lossTax = rd.lossTax;
+      match.trackLosses = !rd.lossTax && referee !== undefined;
+      if (rd.wall) match.wall = rd.wall;
+      if (rd.start) match.start = rd.start;
+    }
     out.push(match);
     return { type: 'match', match };
   });
@@ -116,7 +125,7 @@ function buildTeam(players: PlayerId[], tables: TableCount): Schedule {
   ROUNDS.forEach((rd, k) => {
     const a = assign(rotate(players, k), tables, false);
     leagueRows.push(
-      matchRow('league', k + 1, a.tables, a.waiting, start, `Kolo ${k + 1}`, `${rd.name}, ${rd.min} min`, tables, matches),
+      matchRow('league', k + 1, a.tables, a.waiting, start, `Kolo ${k + 1}`, `${rd.name}, ${rd.min} min`, tables, matches, rd),
     );
     if (k === 0) {
       const d = a.tables.filter((x) => x.kind === 'doubles').length;
@@ -176,7 +185,7 @@ function buildSingles(players: PlayerId[], tables: TableCount): Schedule {
   let first = { singles: 0, waiting: 0 };
   ROUNDS.slice(0, 5).forEach((rd, k) => {
     const a = assign(rotate(players, k), tables, true);
-    rows.push(matchRow('league', k + 1, a.tables, a.waiting, start, `Kolo ${k + 1}`, `${rd.name}, ${rd.min} min`, tables, matches));
+    rows.push(matchRow('league', k + 1, a.tables, a.waiting, start, `Kolo ${k + 1}`, `${rd.name}, ${rd.min} min`, tables, matches, rd));
     if (k === 0) first = { singles: a.tables.length, waiting: a.waiting.length };
     start += rd.min + t.changeover;
   });
