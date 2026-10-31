@@ -27,16 +27,18 @@ export function ScoreInputs({ label, score, maxGoals, withLosses, onChange }: Pr
   );
   return (
     <div className="score">
-      {input('ga', maxGoals, 'góly vlevo')}
-      <span className="sep">:</span>
-      {input('gb', maxGoals, 'góly vpravo')}
+      <span className="score-pair">
+        {input('ga', maxGoals, 'góly vlevo')}
+        <span className="sep">:</span>
+        {input('gb', maxGoals, 'góly vpravo')}
+      </span>
       {withLosses && (
-        <>
+        <span className="score-pair">
           <span className="lbl">ztráty</span>
           {input('la', 30, 'ztráty vlevo')}
           <span className="sep">/</span>
           {input('lb', 30, 'ztráty vpravo')}
-        </>
+        </span>
       )}
     </div>
   );

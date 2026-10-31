@@ -132,10 +132,15 @@ tr.clickable:hover td { background: var(--wait); }
 .vs { color: var(--muted); }
 .rule { display: block; color: var(--muted); font-weight: 400; font-size: 14px; white-space: normal; }
 .match-players { white-space: nowrap; }
-.score { display: flex; align-items: center; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+.score { display: flex; align-items: center; gap: 6px 10px; margin-top: 6px; flex-wrap: wrap; }
+.score-pair { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.schedule td { min-width: 120px; }
+.schedule td.t { min-width: 0; }
+.schedule td.b { min-width: 110px; white-space: normal; }
+.schedule td:has([role='group']) { min-width: 190px; }
 .score input { width: 46px; min-height: 36px; padding: 4px 6px; text-align: center; font-variant-numeric: tabular-nums; }
 .score .sep { font-weight: 600; }
-.score .lbl { font-size: 12px; color: var(--muted); margin-left: 6px; }
+.score .lbl { font-size: 12px; color: var(--muted); }
 .teams { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 700; margin: 6px 0 12px; }
 .disc { border-top: 1px solid var(--line); padding: 8px 0 4px; }
 .disc p { margin-bottom: 4px; }
