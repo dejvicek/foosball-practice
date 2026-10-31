@@ -96,6 +96,17 @@ export function useAppState(repo: Repository): AppStore {
     return () => window.removeEventListener('beforeunload', on);
   }, []);
 
+  /** Zruší čekající (debounce) zápisy skóre tréninku, které nemají přežít. */
+  const cancelPendingScores = useCallback((trainingId: string, keep: (matchId: MatchId) => boolean) => {
+    for (const [key, timer] of timers.current) {
+      const [tid, mid] = key.split('::');
+      if (tid === trainingId && !keep(mid)) {
+        clearTimeout(timer);
+        timers.current.delete(key);
+      }
+    }
+  }, []);
+
   const actions = useMemo(
     () => ({
       reload: () => setLoadNonce((n) => n + 1),
@@ -115,11 +126,13 @@ export function useAppState(repo: Repository): AppStore {
         enqueue(() => repo.saveTraining(t));
       },
       updateTrainingConfig: (t: Training) => {
+        cancelPendingScores(t.id, (mid) => mid in t.scores);
         setData((d) => ({ ...d, trainings: upsert(d.trainings, t) }));
         enqueue(() => repo.saveTraining(t));
         enqueue(() => repo.replaceScores(t.id, Object.keys(t.scores)));
       },
       deleteTraining: (id: string) => {
+        cancelPendingScores(id, () => false);
         setData((d) => ({ ...d, trainings: d.trainings.filter((t) => t.id !== id) }));
         enqueue(() => repo.deleteTraining(id));
       },
@@ -147,7 +160,7 @@ export function useAppState(repo: Repository): AppStore {
       },
       newId: () => crypto.randomUUID(),
     }),
-    [repo, enqueue],
+    [repo, enqueue, cancelPendingScores],
   );
 
   return { status, data, saveState, ...actions };
