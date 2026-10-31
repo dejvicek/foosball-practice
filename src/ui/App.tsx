@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { loadPrefs, savePrefs, type UiPrefs } from '../storage/prefs';
 import type { Repository } from '../storage/repository';
-import { BottomNav } from './components/BottomNav';
+import { MainNav } from './components/MainNav';
 import { LadderPage } from './pages/LadderPage';
 import { PlayerPage } from './pages/PlayerPage';
 import { PlayersPage } from './pages/PlayersPage';
@@ -38,6 +38,7 @@ export function App({ repo }: { repo: Repository }) {
 
   return (
     <>
+      <MainNav route={route} navigate={navigate} />
       {store.saveState === 'retrying' && (
         <div className="save-banner" role="status">
           Neuloženo – zkouším znovu
@@ -52,7 +53,6 @@ export function App({ repo }: { repo: Repository }) {
         </div>
       )}
       <main className="page">{body}</main>
-      <BottomNav route={route} navigate={navigate} />
     </>
   );
 }
