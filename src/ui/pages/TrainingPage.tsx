@@ -1,6 +1,7 @@
 import { addPlayer } from '../../domain/roster';
 import { useMemo, useState } from 'react';
 import { buildSchedule, canBuildSchedule } from '../../domain/schedule';
+import { reconcileTeams } from '../../domain/simulation';
 import { lostEntries, pruneEntries, toggleAttendee, type LostEntries } from '../../domain/training';
 import type { Training } from '../../domain/types';
 import { Explanations } from '../components/Explanations';
@@ -26,7 +27,11 @@ export function lossMessage(lost: LostEntries): string | null {
 }
 
 const configChanged = (a: Training, b: Training) =>
-  a.mode !== b.mode || a.tables !== b.tables || a.attendees.join() !== b.attendees.join() || a.simSplit !== b.simSplit;
+  a.mode !== b.mode ||
+  a.tables !== b.tables ||
+  a.attendees.join() !== b.attendees.join() ||
+  a.simSplit !== b.simSplit ||
+  JSON.stringify(a.simTeams) !== JSON.stringify(b.simTeams);
 // Pozn.: startTime ani datum rozpis nemění, ukládají se přes saveTraining.
 
 export function TrainingPage({ store, id, navigate }: { store: AppStore; id: string; navigate: (r: Route) => void }) {
@@ -54,8 +59,14 @@ export function TrainingPage({ store, id, navigate }: { store: AppStore; id: str
   const openKey = expanded ?? (fallback ? rowKey(fallback) : null);
 
   const apply = (changed: Training) => {
-    // Změna sestavy odemkne zamčené týmy simulace (přepočítají se).
-    const next = configChanged(training, changed) ? { ...changed, simTeams: null } : changed;
+    let next = changed;
+    if (changed.simSplit === 'manual') {
+      // Ruční týmy se jen srovnají s přítomnými.
+      if (changed.simTeams) next = { ...changed, simTeams: reconcileTeams(changed.simTeams, changed.attendees) };
+    } else if (configChanged(training, changed) && changed.simTeams === training.simTeams) {
+      // Změna sestavy odemkne zamčené týmy simulace (přepočítají se).
+      next = { ...changed, simTeams: null };
+    }
     const msg = lossMessage(lostEntries(training, next));
     if (msg && !confirm(msg)) return;
     if (configChanged(training, next)) {
@@ -84,7 +95,13 @@ export function TrainingPage({ store, id, navigate }: { store: AppStore; id: str
         {MODE_LABEL[training.mode]}, {training.attendees.length} {plural(training.attendees.length, 'hráč', 'hráči', 'hráčů')}, {training.tables} stoly
       </p>
 
-      <TrainingSetup training={training} players={store.data.players} onChange={apply} onAddPlayer={onAddPlayer} />
+      <TrainingSetup
+        training={training}
+        currentTeams={schedule?.teams ?? null}
+        players={store.data.players}
+        onChange={apply}
+        onAddPlayer={onAddPlayer}
+      />
 
       {schedule && (
         <>
@@ -98,7 +115,7 @@ export function TrainingPage({ store, id, navigate }: { store: AppStore; id: str
             onScore={(matchId, s) => {
               const m = schedule.matches.find((x) => x.id === matchId);
               // První výsledek simulace zamkne týmy, aby je pozdější opravy ligy nepřeházely.
-              if (m?.block === 'sim' && !training.simTeams && schedule.teams)
+              if (m?.block === 'sim' && !training.simTeams && training.simSplit !== 'manual' && schedule.teams)
                 store.saveTraining({ ...training, simTeams: schedule.teams });
               store.saveScore(training.id, matchId, s);
             }}

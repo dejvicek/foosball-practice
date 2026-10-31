@@ -2,19 +2,21 @@ import { useState } from 'react';
 import { sortedRoster, type RosterError } from '../../domain/roster';
 import { MAX_PLAYERS, MIN_PLAYERS } from '../../domain/schedule';
 import { moveAttendee, toggleAttendee } from '../../domain/training';
-import type { Mode, Player, SimSplit, TableCount, Training } from '../../domain/types';
+import type { Mode, Player, SimSplit, SimTeams, TableCount, Training } from '../../domain/types';
 import { MODE_OPTION, plural } from '../format';
 import { ROSTER_ERRORS } from '../pages/PlayersPage';
 
 interface Props {
   training: Training;
+  /** Týmy simulace, jak jsou právě v rozpisu (pro převzetí do ručního sestavení). */
+  currentTeams: SimTeams | null;
   players: Player[];
   onChange(next: Training): void;
   /** Přidá hráče do soupisky a vrátí jeho ID, nebo chybu. */
   onAddPlayer(name: string): { id: string } | { error: RosterError };
 }
 
-export function TrainingSetup({ training, players, onChange, onAddPlayer }: Props) {
+export function TrainingSetup({ training, currentTeams, players, onChange, onAddPlayer }: Props) {
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const n = training.attendees.length;
@@ -61,10 +63,15 @@ export function TrainingSetup({ training, players, onChange, onAddPlayer }: Prop
             <select
               id="t-split"
               value={training.simSplit}
-              onChange={(e) => onChange({ ...training, simSplit: e.target.value as SimSplit, simTeams: null })}
+              onChange={(e) => {
+                const simSplit = e.target.value as SimSplit;
+                // Ruční: začni od týmů, které jsou právě vidět.
+                onChange({ ...training, simSplit, simTeams: simSplit === 'manual' ? currentTeams : null });
+              }}
             >
               <option value="performance">Vyrovnaně podle výkonu v tréninku</option>
               <option value="order">Podle nominačního pořadí</option>
+              <option value="manual">Ručně</option>
             </select>
           </div>
         )}
@@ -77,6 +84,10 @@ export function TrainingSetup({ training, players, onChange, onAddPlayer }: Prop
           </select>
         </div>
       </div>
+
+      {training.mode === 'team' && training.simSplit === 'manual' && currentTeams && (
+        <SimTeamsEditor teams={currentTeams} byId={byId} onChange={(t) => onChange({ ...training, simTeams: t })} />
+      )}
 
       <details className="attendance" open={initiallyOpen}>
         <summary className="attendance-head">
@@ -148,6 +159,58 @@ export function TrainingSetup({ training, players, onChange, onAddPlayer }: Prop
           </ol>
         </details>
       )}
+    </div>
+  );
+}
+
+function SimTeamsEditor({
+  teams,
+  byId,
+  onChange,
+}: {
+  teams: SimTeams;
+  byId: Map<string, Player>;
+  onChange(t: SimTeams): void;
+}) {
+  const name = (id: string) => byId.get(id)?.name ?? '?';
+  const move = (from: 'A' | 'B', id: string) => {
+    const to = from === 'A' ? 'B' : 'A';
+    onChange({ ...teams, [from]: teams[from].filter((p) => p !== id), [to]: [...teams[to], id] } as SimTeams);
+  };
+  const shift = (side: 'A' | 'B', i: number, dir: -1 | 1) => {
+    const list = [...teams[side]];
+    const j = i + dir;
+    if (j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    onChange({ ...teams, [side]: list } as SimTeams);
+  };
+  return (
+    <div className="teams-editor">
+      {(['A', 'B'] as const).map((side) => (
+        <div key={side} className="team-col">
+          <h3>
+            Tým {side} <span className="muted">({teams[side].length})</span>
+          </h3>
+          <ol className="order-list">
+            {teams[side].map((id, i) => (
+              <li key={id}>
+                <span className="pos">{i + 1}.</span>
+                <span className="nm">{name(id)}</span>
+                <button type="button" className="icon" aria-label={`Posunout ${name(id)} v týmu nahoru`} disabled={i === 0} onClick={() => shift(side, i, -1)}>
+                  ↑
+                </button>
+                <button type="button" className="icon" aria-label={`Posunout ${name(id)} v týmu dolů`} disabled={i === teams[side].length - 1} onClick={() => shift(side, i, 1)}>
+                  ↓
+                </button>
+                <button type="button" className="ghost" aria-label={`Přesunout ${name(id)} do týmu ${side === 'A' ? 'B' : 'A'}`} onClick={() => move(side, id)}>
+                  {side === 'A' ? 'do B →' : '← do A'}
+                </button>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ))}
+      <p className="note">Kdo je v týmu výš, jde dřív do singlu. Levá strana zápasu je vždy tým A.</p>
     </div>
   );
 }

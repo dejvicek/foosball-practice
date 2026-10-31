@@ -88,7 +88,7 @@ export function trainingFromRow(r: TrainingRow, scores: ScoreRow[], solo: SoloRo
     attendees: r.attendees ?? [],
     scores: Object.fromEntries(scores.filter((s) => s.training_id === r.id).map((s) => [s.match_id, scoreFromRow(s)])),
     soloResults,
-    simSplit: r.sim_split === 'order' ? 'order' : 'performance',
+    simSplit: r.sim_split === 'order' || r.sim_split === 'manual' ? r.sim_split : 'performance',
     simTeams: r.sim_teams ?? null,
   };
   if (r.notes !== null && r.notes !== undefined) t.notes = r.notes;

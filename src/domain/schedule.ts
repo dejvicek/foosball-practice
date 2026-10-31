@@ -1,7 +1,7 @@
 import { assign, type Pairing } from './assign';
 import { ROUNDS, STATIONS, TIMES, type RoundDef } from './content';
 import { groups, rotate } from './rotation';
-import { balancedSplit, simulateTeams } from './simulation';
+import { balancedSplit, reconcileTeams, simulateTeams } from './simulation';
 import { computeStandings } from './standings';
 import { STATION_METRICS } from './solo';
 import type {
@@ -112,6 +112,7 @@ function groupRows(
 function simTeamsFor(input: ScheduleInput, leagueMatches: Match[]): { A: PlayerId[]; B: PlayerId[] } {
   const players = input.attendees;
   const locked = input.simTeams;
+  if (input.simSplit === 'manual' && locked) return reconcileTeams(locked, players);
   if (locked && [...locked.A, ...locked.B].sort().join() === [...players].sort().join()) return locked;
   if (input.simSplit !== 'performance') {
     const half = Math.ceil(players.length / 2);

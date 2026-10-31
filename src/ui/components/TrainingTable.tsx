@@ -91,7 +91,9 @@ export function TrainingTable({ schedule: s, training, names, current, expanded,
                         {s.teams.B.map((p) => names[p] ?? '?').join(', ')}.
                       </span>
                       <span className="sec-lock">
-                        {training.simTeams
+                        {training.simSplit === 'manual'
+                          ? ' Sestaveno ručně.'
+                          : training.simTeams
                           ? ' Týmy jsou zamčené (už je zapsaný výsledek simulace).'
                           : training.simSplit === 'performance'
                             ? ' Vyrovnaně podle výkonu ve scénářové lize; zamknou se prvním výsledkem simulace.'

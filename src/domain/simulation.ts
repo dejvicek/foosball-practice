@@ -64,3 +64,13 @@ export function simulateTeams(A: PlayerId[], B: PlayerId[], tables: number) {
   const wave2 = wave(A2, B2, tables, wave1.doubles);
   return { A, B, wave1, wave2 };
 }
+
+/** Ruční týmy po změně přítomných: odchozí vypadnou, noví se přidají do menšího týmu (při shodě do A). */
+export function reconcileTeams(teams: { A: PlayerId[]; B: PlayerId[] }, attendees: PlayerId[]): { A: PlayerId[]; B: PlayerId[] } {
+  const present = new Set(attendees);
+  const A = teams.A.filter((p) => present.has(p));
+  const B = teams.B.filter((p) => present.has(p));
+  const placed = new Set([...A, ...B]);
+  for (const p of attendees) if (!placed.has(p)) (B.length < A.length ? B : A).push(p);
+  return { A, B };
+}

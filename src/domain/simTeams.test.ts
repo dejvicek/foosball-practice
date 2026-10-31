@@ -1,4 +1,4 @@
-import { balancedSplit } from './simulation';
+import { balancedSplit, reconcileTeams } from './simulation';
 import { buildSchedule } from './schedule';
 import type { Score } from './types';
 import { H } from '../test/fixtures';
@@ -47,5 +47,23 @@ describe('týmy simulace v rozpisu', () => {
   it('počty zápasů simulace se nemění (n=12: 3 dvojice + 2 singly a 2 dvojice)', () => {
     const s = buildSchedule({ mode: 'team', tables: 4, attendees: H(12), simSplit: 'performance', scores: {} });
     expect(s.summary).toMatchObject({ simDoubles: 5, simSingles: 2 });
+  });
+});
+
+describe('ruční týmy', () => {
+  const base = { mode: 'team' as const, tables: 4 as const, attendees: H(8) };
+  it('reconcileTeams: odchozí vypadnou, noví jdou do menšího týmu (při shodě A)', () => {
+    expect(reconcileTeams({ A: ['H1', 'H2', 'H9'], B: ['H3'] }, ['H1', 'H2', 'H3', 'H4', 'H5'])).toEqual({
+      A: ['H1', 'H2', 'H5'],
+      B: ['H3', 'H4'],
+    });
+  });
+  it('rozpis použije ruční týmy (i nerovnoměrné)', () => {
+    const simTeams = { A: ['H1', 'H2', 'H3', 'H4', 'H5'], B: ['H6', 'H7', 'H8'] };
+    const s = buildSchedule({ ...base, simSplit: 'manual', simTeams });
+    expect(s.teams).toEqual(simTeams);
+  });
+  it('ruční bez týmů → podle nominačního pořadí', () => {
+    expect(buildSchedule({ ...base, simSplit: 'manual', simTeams: null }).teams).toEqual({ A: H(4), B: H(8).slice(4) });
   });
 });

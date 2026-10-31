@@ -23,7 +23,7 @@ export type SoloMetric = 'warmupPasses' | 'fiveBarControl' | 'setShooting' | 'bl
 export type SoloResults = Record<PlayerId, Partial<Record<SoloMetric, number>>>;
 
 /** Jak rozdělit přítomné na týmy simulace ligového kola. */
-export type SimSplit = 'performance' | 'order';
+export type SimSplit = 'performance' | 'order' | 'manual';
 export interface SimTeams {
   A: PlayerId[];
   B: PlayerId[];
@@ -42,7 +42,7 @@ export interface Training {
   soloResults: SoloResults;
   /** Výchozí 'performance': vyrovnaně podle výkonu ve scénářové lize tohoto tréninku. */
   simSplit: SimSplit;
-  /** Zamčené týmy simulace (od prvního zapsaného výsledku simulace), jinak null. */
+  /** Ruční týmy, nebo zamčené týmy (od prvního zapsaného výsledku simulace); jinak null. */
   simTeams: SimTeams | null;
   notes?: string;
 }

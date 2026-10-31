@@ -171,6 +171,22 @@ describe('tabulka tréninku', () => {
     expect(screen.getByText('Tým A: H1, H2, H3, H4. Tým B: H5, H6, H7, H8.')).toBeInTheDocument();
   });
 
+  it('ruční týmy: převezmou se zobrazené a jde přesouvat hráče', async () => {
+    const user = userEvent.setup();
+    const repo = memoryRepository({ players: players(8), trainings: [{ ...training(8, 'team', 4), simSplit: 'performance' as const }] });
+    render(<App repo={repo} />);
+    await screen.findByRole('table', { name: 'Rozpis tréninku' });
+    await user.selectOptions(screen.getByLabelText('Týmy pro simulaci'), 'manual');
+    expect(screen.getByText('Tým A: H1, H4, H5, H8. Tým B: H2, H3, H6, H7.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Přesunout H1 do týmu B' }));
+    expect(screen.getByText('Tým A: H4, H5, H8. Tým B: H2, H3, H6, H7, H1.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Posunout H1 v týmu nahoru' }));
+    expect(screen.getByText('Tým A: H4, H5, H8. Tým B: H2, H3, H6, H1, H7.')).toBeInTheDocument();
+    await vi.waitFor(() =>
+      expect(repo.snapshot().trainings[0]).toMatchObject({ simSplit: 'manual', simTeams: { A: ['id4', 'id5', 'id8'] } }),
+    );
+  });
+
   it('jedničky n=5: v kole 1 počítá H5', async () => {
     render(<App repo={memoryRepository({ players: players(5), trainings: [training(5, 'single', 2)] })} />);
     await screen.findByRole('table', { name: 'Rozpis tréninku' });
