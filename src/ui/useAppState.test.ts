@@ -28,3 +28,27 @@ describe('useAppState', () => {
     expect(result.current.data.trainings[0].scores).toEqual({});
   });
 });
+
+describe('useAppState – sólová část', () => {
+  it('saveSolo se uloží s odstupem; smazání tréninku čekající zápis zruší', async () => {
+    const repo = memoryRepository({ players: [], trainings: [t] });
+    const { result } = renderHook(() => useAppState(repo));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => result.current.saveSolo('t1', 'p1', 'chain', 4));
+    expect(result.current.data.trainings[0].soloResults).toEqual({ p1: { chain: 4 } });
+    await waitFor(() => expect(repo.snapshot().trainings[0].soloResults).toEqual({ p1: { chain: 4 } }));
+
+    act(() => result.current.saveSolo('t1', 'p1', 'chain', 5));
+    act(() => result.current.deleteTraining('t1'));
+    await new Promise((r) => setTimeout(r, 600));
+    expect(result.current.saveState).toBe('idle');
+  });
+
+  it('updateTrainingConfig smaže v úložišti výsledky, které v tréninku nejsou', async () => {
+    const repo = memoryRepository({ players: [], trainings: [{ ...t, soloResults: { p1: { chain: 4 }, p2: { chain: 1 } } }] });
+    const { result } = renderHook(() => useAppState(repo));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    act(() => result.current.updateTrainingConfig({ ...t, soloResults: { p1: { chain: 4 } } }));
+    await waitFor(() => expect(repo.snapshot().trainings[0].soloResults).toEqual({ p1: { chain: 4 } }));
+  });
+});

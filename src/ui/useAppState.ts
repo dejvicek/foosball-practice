@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { isEmptyScore } from '../domain/training';
-import type { MatchId, Player, PlayerId, Score, Training } from '../domain/types';
+import { isEmptyScore, setSolo } from '../domain/training';
+import type { MatchId, Player, PlayerId, Score, SoloMetric, Training } from '../domain/types';
 import { isPermanent, userMessageOf } from '../storage/errors';
 import type { AppData, Repository } from '../storage/repository';
 import { newUuid } from './ids';
@@ -25,6 +25,8 @@ export interface AppStore {
   deleteTraining(id: string): void;
   /** Lokálně hned, do úložiště s odstupem SCORE_DEBOUNCE_MS za zápas. */
   saveScore(trainingId: string, matchId: MatchId, s: Score): void;
+  /** Výsledek sólové části: lokálně hned, do úložiště s odstupem. null maže. */
+  saveSolo(trainingId: string, playerId: PlayerId, metric: SoloMetric, value: number | null): void;
   newId(): string;
 }
 
@@ -120,15 +122,41 @@ export function useAppState(repo: Repository): AppStore {
   }, []);
 
   /** Zruší čekající (debounce) zápisy skóre tréninku, které nemají přežít. */
-  const cancelPendingScores = useCallback((trainingId: string, keep: (matchId: MatchId) => boolean) => {
+  const cancelPending = useCallback((trainingId: string, keep: (t: Training | null) => (rest: string) => boolean, t: Training | null) => {
+    const k = keep(t);
     for (const [key, timer] of timers.current) {
-      const [tid, mid] = key.split('::');
-      if (tid === trainingId && !keep(mid)) {
+      const prefix = `${trainingId}::`;
+      if (key.startsWith(prefix) && !k(key.slice(prefix.length))) {
         clearTimeout(timer);
         timers.current.delete(key);
       }
     }
   }, []);
+
+  /** Ponechá čekající zápisy, které v novém stavu tréninku dávají smysl. */
+  const stillValid = (t: Training | null) => (rest: string) => {
+    if (!t) return false;
+    if (rest.startsWith('solo::')) {
+      const [, pid, metric] = rest.split('::');
+      return t.soloResults[pid]?.[metric as SoloMetric] !== undefined;
+    }
+    return rest in t.scores;
+  };
+
+  const debounce = useCallback(
+    (key: string, op: () => Promise<void>) => {
+      const prev = timers.current.get(key);
+      if (prev) clearTimeout(prev);
+      timers.current.set(
+        key,
+        setTimeout(() => {
+          timers.current.delete(key);
+          enqueue(op);
+        }, SCORE_DEBOUNCE_MS),
+      );
+    },
+    [enqueue],
+  );
 
   const actions = useMemo(
     () => ({
@@ -150,13 +178,21 @@ export function useAppState(repo: Repository): AppStore {
         enqueue(() => repo.saveTraining(t));
       },
       updateTrainingConfig: (t: Training) => {
-        cancelPendingScores(t.id, (mid) => mid in t.scores);
+        cancelPending(t.id, stillValid, t);
         setData((d) => ({ ...d, trainings: upsert(d.trainings, t) }));
         enqueue(() => repo.saveTraining(t));
         enqueue(() => repo.replaceScores(t.id, Object.keys(t.scores)));
+        enqueue(() =>
+          repo.replaceSolo(
+            t.id,
+            Object.entries(t.soloResults).flatMap(([playerId, ms]) =>
+              Object.keys(ms).map((metric) => ({ playerId, metric: metric as SoloMetric })),
+            ),
+          ),
+        );
       },
       deleteTraining: (id: string) => {
-        cancelPendingScores(id, () => false);
+        cancelPending(id, stillValid, null);
         setData((d) => ({ ...d, trainings: d.trainings.filter((t) => t.id !== id) }));
         enqueue(() => repo.deleteTraining(id));
       },
@@ -171,20 +207,18 @@ export function useAppState(repo: Repository): AppStore {
             return { ...t, scores };
           }),
         }));
-        const key = `${trainingId}::${matchId}`;
-        const prev = timers.current.get(key);
-        if (prev) clearTimeout(prev);
-        timers.current.set(
-          key,
-          setTimeout(() => {
-            timers.current.delete(key);
-            enqueue(() => repo.saveScore(trainingId, matchId, s));
-          }, SCORE_DEBOUNCE_MS),
-        );
+        debounce(`${trainingId}::${matchId}`, () => repo.saveScore(trainingId, matchId, s));
+      },
+      saveSolo: (trainingId: string, playerId: PlayerId, metric: SoloMetric, value: number | null) => {
+        setData((d) => ({
+          ...d,
+          trainings: d.trainings.map((t) => (t.id === trainingId ? setSolo(t, playerId, metric, value) : t)),
+        }));
+        debounce(`${trainingId}::solo::${playerId}::${metric}`, () => repo.saveSolo(trainingId, playerId, metric, value));
       },
       newId: newUuid,
     }),
-    [repo, enqueue, cancelPendingScores],
+    [repo, enqueue, cancelPending, debounce],
   );
 
   return { status, data, saveState, saveError, ...actions };
