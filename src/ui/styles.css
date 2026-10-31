@@ -256,16 +256,17 @@ details.attendance .add-form { margin: 8px 0 0; }
 .entry-foot { margin-top: 10px; font-size: 13px; }
 .entry-foot p { margin-bottom: 4px; }
 .entry-warn { color: var(--warn); font-weight: 600; }
-/* Nápověda: vždy pod kartami, jeden formát */
-.help { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-strong); display: grid; gap: 10px; }
-.help-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+/* Nápověda: vždy pod kartami, jeden formát, ve výchozím stavu sbalená */
+details.help { margin-top: 10px; padding-top: 6px; border-top: 1px solid var(--line-strong); }
+details.help > summary { font-size: 13px; font-weight: 600; color: var(--felt); padding: 4px 0; }
+details.help[open] > summary { margin-bottom: 8px; }
+details.help[open] { display: block; }
+.help-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; margin-bottom: 10px; }
 .help-item { font-size: 13px; line-height: 1.45; }
-.help > .help-item, .help > details { max-width: 90ch; }
+details.help > .help-item { max-width: 90ch; }
+details.help > .help-item + .help-item { margin-top: 8px; }
 .help-item h4 { margin: 0 0 2px; font-size: 13px; font-weight: 700; }
 .help-item p { margin: 0 0 3px; }
-.help details summary { font-size: 13px; font-weight: 600; color: var(--felt); padding: 2px 0; }
-.help details[open] summary { margin-bottom: 6px; }
-.help details .help-item + .help-item { margin-top: 8px; }
 .k { font-weight: 600; color: var(--muted); }
 
 /* Výsledek zápasu */

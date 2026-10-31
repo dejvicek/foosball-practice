@@ -35,6 +35,9 @@ export function BlockEntry({ row, waitingLabel, training, names, onScore, onSolo
   const refs = new Set(row.cells.flatMap((c) => (c?.type === 'match' && c.match.referee ? [c.match.referee] : [])));
   const unassigned = row.waiting.filter((p) => !refs.has(p));
   const hasHelp = ex.main.length > 0 || ex.general.length > 0 || ex.perTable.some(Boolean);
+  const helpTitle = ex.perTable.some(Boolean)
+    ? 'Nápověda ke stanovištím'
+    : `Nápověda: ${[...ex.main.map((i) => i.name), ...ex.general.map((i) => i.name.toLocaleLowerCase('cs'))].join(', ')}`;
   const scenario = /^Start /.test(row.rule ?? '');
   return (
     <div className="block-entry">
@@ -118,26 +121,19 @@ export function BlockEntry({ row, waitingLabel, training, names, onScore, onSolo
           </p>
         )}
         {hasHelp && (
-        <div className="help">
-          {ex.perTable.some(Boolean) && (
-            <div className="help-grid">
-              {ex.perTable.map((it, j) =>
-                it ? <HelpItem key={j} title={`Stůl ${j + 1}: ${it.name}`} item={it} /> : <div key={j} />,
-              )}
-            </div>
-          )}
-          {ex.main.map((it) => (
-            <HelpItem key={it.name} title={it.name} item={it} />
-          ))}
-          {ex.general.length > 0 && (
-            <details>
-              <summary>Obecná pravidla: {ex.general.map((g) => g.name.toLocaleLowerCase('cs')).join(', ')}</summary>
-              {ex.general.map((it) => (
-                <HelpItem key={it.name} title={it.name} item={it} />
-              ))}
-            </details>
-          )}
-        </div>
+          <details className="help">
+            <summary>{helpTitle}</summary>
+            {ex.perTable.some(Boolean) && (
+              <div className="help-grid">
+                {ex.perTable.map((it, j) =>
+                  it ? <HelpItem key={j} title={`Stůl ${j + 1}: ${it.name}`} item={it} /> : <div key={j} />,
+                )}
+              </div>
+            )}
+            {[...ex.main, ...ex.general].map((it) => (
+              <HelpItem key={it.name} title={it.name} item={it} />
+            ))}
+          </details>
         )}
       </div>
     </div>
