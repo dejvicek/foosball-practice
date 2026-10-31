@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rozpis stolů – konfigurátor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F7F4; --paper: #FFFFFF; --ink: #161A17; --muted: #5A6460; --line: #D6DBD7;
+    --felt: #1F5A3F; --felt-ink: #FFFFFF; --ball: #F2C94C; --red: #B8322B; --wait: #EEF0EC;
+    color-scheme: light;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141816; --paper: #1C211E; --ink: #EEF1EE; --muted: #A4ADA8; --line: #334039;
+      --felt: #2E7A57; --felt-ink: #F4FBF6; --ball: #E6BE45; --red: #E0645C; --wait: #232A26;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141816; --paper: #1C211E; --ink: #EEF1EE; --muted: #A4ADA8; --line: #334039;
+    --felt: #2E7A57; --felt-ink: #F4FBF6; --ball: #E6BE45; --red: #E0645C; --wait: #232A26;
+    color-scheme: dark;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  *, *::before, *::after { box-sizing: inherit; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Barlow", "Segoe UI", Roboto, Arial, sans-serif; font-size: 16px; line-height: 1.45; }
+  main { max-width: 1000px; margin: 0 auto; padding: 24px 20px 64px; }
+  h1, h2, h3, h4 { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; line-height: 1.05; margin: 0; }
+  h1 { font-size: clamp(38px, 7vw, 60px); font-weight: 700; }
+  h2 { font-size: 30px; font-weight: 700; margin: 44px 0 10px; }
+  h3 { font-size: 21px; font-weight: 600; margin: 18px 0 6px; }
+  h4 { font-size: 19px; font-weight: 600; margin: 14px 0 4px; }
+  p { margin: 0 0 10px; }
+  ul { margin: 0 0 10px; padding-left: 20px; }
+  li { margin-bottom: 3px; }
+  .lead { color: var(--muted); font-size: 18px; max-width: 62ch; margin-top: 10px; }
+
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px 24px; padding: 18px 0 20px; margin-top: 20px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); align-items: end; }
+  .controls label { display: block; font-weight: 600; margin-bottom: 6px; }
+  .controls .count { display: flex; align-items: center; gap: 12px; }
+  .controls output { font-family: "Barlow Condensed", sans-serif; font-size: 34px; font-weight: 700; min-width: 2ch; text-align: right; }
+  input[type=range] { width: 100%; accent-color: var(--felt); }
+  select, textarea, button, input[type=number] { font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; }
+  select { width: 100%; }
+  textarea { width: 100%; min-height: 96px; resize: vertical; }
+  .names { grid-column: 1 / -1; }
+  .names small { color: var(--muted); display: block; margin-top: 4px; }
+  button { cursor: pointer; }
+  button.print { background: var(--felt); color: var(--felt-ink); border-color: var(--felt); font-weight: 600; padding: 10px 18px; }
+  button.danger { color: var(--red); border-color: var(--red); background: transparent; font-weight: 600; }
+  :focus-visible { outline: 3px solid var(--ball); outline-offset: 2px; }
+
+  .summary { background: var(--paper); border: 2px solid var(--ball); border-left-width: 14px; padding: 12px 16px; margin: 20px 0 8px; }
+  .summary p:last-child { margin-bottom: 0; }
+
+  details { background: var(--paper); border: 1px solid var(--line); margin: 14px 0; }
+  details summary { cursor: pointer; padding: 10px 16px; font-family: "Barlow Condensed", sans-serif; font-size: 22px; font-weight: 600; }
+  details > div { padding: 4px 16px 14px; }
+  .disc { border-top: 1px solid var(--line); padding: 8px 0 4px; }
+  .disc p { margin-bottom: 4px; }
+  .disc .k { font-weight: 600; color: var(--muted); }
+
+  .wrap { overflow-x: auto; margin-bottom: 8px; }
+  table { border-collapse: collapse; width: 100%; background: var(--paper); font-size: 15px; }
+  th, td { border: 1px solid var(--line); padding: 7px 9px; text-align: left; vertical-align: top; }
+  th { background: var(--felt); color: var(--felt-ink); font-weight: 600; white-space: nowrap; }
+  td.t { font-family: "Barlow Condensed", sans-serif; font-size: 19px; font-weight: 700; white-space: nowrap; }
+  td.b { font-weight: 600; white-space: nowrap; }
+  td.wait { background: var(--wait); color: var(--muted); }
+  td.free { color: var(--muted); font-style: italic; }
+  td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  td.pos { color: var(--felt); font-weight: 600; }
+  td.neg { color: var(--red); font-weight: 600; }
+  .vs { color: var(--muted); }
+  .note { color: var(--muted); font-size: 14px; margin-bottom: 14px; }
+  .rule { display: block; color: var(--muted); font-weight: 400; font-size: 14px; }
+
+  .score { display: flex; align-items: center; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+  .score input { width: 44px; padding: 4px 6px; text-align: center; font-variant-numeric: tabular-nums; }
+  .score .sep { font-weight: 600; }
+  .score .lbl { font-size: 12px; color: var(--muted); margin-left: 6px; }
+
+  .standings h2 { margin-top: 44px; }
+  .teams { font-family: "Barlow Condensed", sans-serif; font-size: 26px; font-weight: 700; margin: 6px 0 12px; }
+
+  @media print {
+    body { background: #fff; color: #000; }
+    .controls, button, .lead, details { display: none; }
+    main { max-width: none; padding: 0; }
+    h2 { page-break-after: avoid; }
+    .wrap { page-break-inside: avoid; }
+    .score input { border: none; border-bottom: 1px solid #999; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Rozpis stolů</h1>
+  <p class="lead">Nastav počet hráčů a stolů a dostaneš rozpis celého tréninku: kdo hraje s kým, na kterém stole, od kolika a kdo zrovna počítá. U každého zápasu zapiš skóre, dole se sčítá pořadí.</p>
+
+  <div class="controls">
+    <div>
+      <label for="players">Počet hráčů</label>
+      <div class="count"><input type="range" id="players" min="4" max="13" value="8"><output id="playersOut">8</output></div>
+    </div>
+    <div>
+      <label for="tables">Počet stolů</label>
+      <select id="tables"><option>2</option><option>3</option><option selected>4</option></select>
+    </div>
+    <div>
+      <label for="mode">Typ tréninku</label>
+      <select id="mode"><option value="team" selected>Týmový trénink (3 h)</option><option value="single">Trénink jedniček (80 min)</option></select>
+    </div>
+    <div>
+      <button class="print" type="button" onclick="window.print()">Vytisknout rozpis</button>
+    </div>
+    <div class="names">
+      <label for="names">Jména hráčů (jedno na řádek, nepovinné)</label>
+      <textarea id="names" placeholder="Honza&#10;Petr&#10;Martin"></textarea>
+      <small>Prázdné řádky doplní H1, H2, … Pořadí jmen je zároveň nominační pořadí pro simulaci kola: první polovina seznamu je tým A, druhá tým B, a kdo je v týmu výš, jde dřív do singlu. Zadaná skóre se ukládají v tomhle prohlížeči a drží se, dokud nezměníš jména.</small>
+    </div>
+  </div>
+
+  <div id="out"></div>
+
+  <details>
+    <summary>Vysvětlivky: stanoviště, pravidla a scénáře</summary>
+    <div>
+      <h4>Stanoviště (sólový trénink, 8 minut na každém)</h4>
+      <div class="disc">
+        <p><strong>Udržení míče na pětce</strong></p>
+        <p><span class="k">Cíl:</span> přijmout a zastavit míč pod kontrolou dřív, než se přihrává.</p>
+        <p><span class="k">Provedení:</span> útočník na pětce, soupeř aktivně brání svou pětkou. Útočník míč přijme a úplně zastaví, posune ho po pětce na jiného panáčka a zastaví, ještě jednou totéž. Teprve po třetím zastavení smí přihrát na trojku. Série končí přihrávkou, kterou trojka přijme pod kontrolou, nebo ztrátou. 10 sérií, pak výměna.</p>
+        <p><span class="k">Počítá se:</span> ztráty na 10 sérií.</p>
+      </div>
+      <div class="disc">
+        <p><strong>Střelba jen z nastavení</strong></p>
+        <p><span class="k">Cíl:</span> střílet až z kontrolovaného míče, ne z chaosu.</p>
+        <p><span class="k">Provedení:</span> střelec na trojce, soupeř brání brankou a dvojkou. 20 střel, před každou musí být míč zastavený. Střela z odrazu nebo z pohybu se nepočítá ani jako pokus.</p>
+        <p><span class="k">Počítá se:</span> góly z 20 střel.</p>
+      </div>
+      <div class="disc">
+        <p><strong>Obrana do držení</strong></p>
+        <p><span class="k">Cíl:</span> po bloku míč zastavit a zpracovat, ne jen odpálit pryč.</p>
+        <p><span class="k">Provedení:</span> obránce na brance a dvojce, soupeř střílí z trojky středním tempem. 10 bloků. Blok platí, když obránce míč následně dostane pod kontrolu v zadních tyčích. Odpal naslepo neplatí.</p>
+        <p><span class="k">Počítá se:</span> bloky do držení z 10.</p>
+      </div>
+      <div class="disc">
+        <p><strong>Rozehrávka ze zadních tyčí</strong></p>
+        <p><span class="k">Cíl:</span> dostat míč ze zadku na vlastní pětku přes aktivní soupeřovu trojku. Nejdražší místo na stole, kde se dá ztratit míč.</p>
+        <p><span class="k">Provedení:</span> obránce má míč zastavený na dvojce nebo v brance, soupeř brání trojkou a pětkou. 10 rozehrávek, platí jen ta, která skončí zastaveným míčem na vlastní pětce.</p>
+        <p><span class="k">Počítá se:</span> dokončené rozehrávky z 10.</p>
+      </div>
+      <div class="disc">
+        <p><strong>Řetězec (trénink jedniček)</strong></p>
+        <p><span class="k">Provedení:</span> hráč musí dokončit celý řetězec: blok → zastavení v zadku → rozehrávka na pětku → zastavení → přihrávka na trojku → zastavení → střela. Soupeř hraje normálně, střílí jen středním tempem. Řetězec se přeruší první ztrátou nebo prvním krokem bez zastavení.</p>
+        <p><span class="k">Počítá se:</span> dokončené řetězce z 10.</p>
+      </div>
+
+      <h4>Pravidla a scénáře (zápasový trénink)</h4>
+      <div class="disc">
+        <p><strong>Každý gól se počítá</strong></p>
+        <p>Pořadí ve scénářové lize dělá celkové skóre (vstřelené minus obdržené), ne vyhrané legy. Vést 1:0 a odpočívat stojí reálné body, vzdát prohraný leg taky.</p>
+      </div>
+      <div class="disc">
+        <p><strong>Normální leg</strong></p>
+        <p>Leg do 6 bez dalších pravidel. Výchozí stav, se kterým se ostatní kola porovnávají.</p>
+      </div>
+      <div class="disc">
+        <p><strong>Daň za ztrátu</strong></p>
+        <p>Ztracený míč z kontrolované pozice = gól pro soupeře. Pětka: máš míč na pětce a soupeř ho získá, aniž bys vystřelil. Zadní tyče: míč byl v brance nebo na dvojce zastavený aspoň 1 sekundu a cokoli z něj vznikne skončí u soupeře bez tvé střely. Nepočítá se odražený míč hned po bloku. Ztráty z pětky a ze zadku se zapisují zvlášť.</p>
+      </div>
+      <div class="disc">
+        <p><strong>Zeď</strong></p>
+        <p>Jeden tým má celý leg zakázáno riskovat: drží míč, nikam nespěchá, žádné riskantní přihrávky, střílí jen z jistoty. Druhý tým ho musí prolomit. V dalším kole se role otočí. Simulace soupeře, který nás v lize trestá, když zrychlíme.</p>
+      </div>
+      <div class="disc">
+        <p><strong>Start 0:3</strong></p>
+        <p>Leg začíná za stavu 0:3, pozadu je strana uvedená v rozpisu vlevo. Trénuje nehrát odevzdaně, když prohráváme. Hraje se s Daní za ztrátu. Do skóre se zapisují jen góly odehrané v kole (konec 6:4 ze startu 0:3 = zápis 6:1).</p>
+      </div>
+      <div class="disc">
+        <p><strong>Start 4:4</strong></p>
+        <p>Koncovka těsného legu, zbývají 2 až 4 góly. Zapisují se jen odehrané góly (konec 6:4 = zápis 2:0).</p>
+      </div>
+      <div class="disc">
+        <p><strong>Start 5:5, o 2 góly, strop 10</strong></p>
+        <p>Přesně třetí set z ligy. Vyhrává, kdo získá náskok 2 gólů, nejvýš do 10. Zapisují se jen odehrané góly (konec 7:5 = zápis 2:0).</p>
+      </div>
+      <div class="disc">
+        <p><strong>Simulace ligového kola</strong></p>
+        <p>Dva týmy, pevná nominace předem, každý zápas 2 sety do 6, třetí o 2 góly se stropem 10. Zapisuje se výsledek v setech (2:0, 2:1). Vyhrává tým s více vyhranými zápasy.</p>
+      </div>
+      <div class="disc">
+        <p><strong>Role rozhodčího</strong></p>
+        <p>Kdo zrovna nehraje, čárkuje ztráty (v každém kole, i bez Daně), hlídá kolo Zeď a čas kola, rozhoduje sporné ztráty. Rozhodnutí platí, nediskutuje se. Když nikdo nečeká, ztráty počítá brankář soupeřící dvojice.</p>
+        <p>Kolo končí dohraným legem, čas je jen pojistka pro rotaci: když vyprší, zapíše se aktuální stav a jde se dál. Aby se nedalo hrát na čas, rozhodčí vymáhá limity držení míče (10 s na pětce, 15 s na trojce). Pomalá hra je záměr jen v kole Zeď.</p>
+      </div>
+    </div>
+  </details>
+
+  <div id="standings" class="standings"></div>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var STATIONS = ['Udržení míče na pětce', 'Střelba jen z nastavení', 'Obrana do držení', 'Rozehrávka ze zadních tyčí'];
+  var ROUNDS = [
+    { name: 'Normální leg', min: 8 },
+    { name: 'Daň za ztrátu', min: 8 },
+    { name: 'Zeď', min: 8 },
+    { name: 'Zeď, otočené role', min: 8 },
+    { name: 'Start 0:3 + daň (levá strana začíná 0:3)', min: 5 },
+    { name: 'Start 4:4', min: 3 },
+    { name: 'Start 5:5, o 2 góly, strop 10', min: 3 }
+  ];
+  var STORE = 'foosball-rozpis-skore';
+  var MATCHES = [];
+  var R = [];
+  var scores = load();
+
+  function load() {
+    try { var s = localStorage.getItem(STORE); return s ? JSON.parse(s) : {}; } catch (e) { return {}; }
+  }
+  function save() {
+    try { localStorage.setItem(STORE, JSON.stringify(scores)); } catch (e) { /* bez uložení to běží dál */ }
+  }
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function clock(min) { var h = Math.floor(min / 60), m = min % 60; return h + ':' + (m < 10 ? '0' : '') + m; }
+  function rotate(arr, k) { k = k % arr.length; return arr.slice(k).concat(arr.slice(0, k)); }
+  function pair(a) { return a.map(esc).join(' + '); }
+  function match(a, b) { return pair(a) + ' <span class="vs">vs</span> ' + pair(b); }
+  function num(v) { var n = parseInt(v, 10); return isNaN(n) ? null : n; }
+
+  function roster(n) {
+    var lines = $('names').value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+    var out = [];
+    for (var i = 0; i < n; i++) out.push(lines[i] || ('H' + (i + 1)));
+    return out;
+  }
+
+  function groups(list, g) {
+    var res = [];
+    for (var i = 0; i < g; i++) res.push([]);
+    list.forEach(function (p, i) { res[i % g].push(p); });
+    return res;
+  }
+
+  // Rozdělí seznam hráčů na stoly: nejdřív dvojice, pak singl, zbytek počítá.
+  function assign(list, t, singlesOnly) {
+    var tables = [], i = 0;
+    if (!singlesOnly) {
+      while (list.length - i >= 4 && tables.length < t) {
+        tables.push({ kind: 'dvojice', a: [list[i], list[i + 1]], b: [list[i + 2], list[i + 3]] });
+        i += 4;
+      }
+    }
+    while (list.length - i >= 2 && tables.length < t) {
+      tables.push({ kind: 'singl', a: [list[i]], b: [list[i + 1]] });
+      i += 2;
+    }
+    return { tables: tables, waiting: list.slice(i) };
+  }
+
+  // Zaregistruje zápas a vrátí HTML včetně políček pro skóre.
+  function matchCell(m, ctx, maxGoals, withLosses) {
+    var id = ctx + '|' + m.a.join('+') + 'v' + m.b.join('+');
+    MATCHES.push({ id: id, a: m.a, b: m.b, block: ctx.split('|')[0], losses: withLosses });
+    var s = scores[id] || {};
+    function inp(f, max, title) {
+      var v = s[f] === undefined || s[f] === null ? '' : s[f];
+      return '<input type="number" min="0" max="' + max + '" inputmode="numeric" data-id="' + esc(id) + '" data-f="' + f + '" value="' + v + '" placeholder="–" title="' + title + '">';
+    }
+    var html = match(m.a, m.b) + '<span class="rule">' + m.kind + '</span>';
+    html += '<div class="score">' + inp('ga', maxGoals, 'skóre levé strany') + '<span class="sep">:</span>' + inp('gb', maxGoals, 'skóre pravé strany');
+    if (withLosses) html += '<span class="lbl">ztráty</span>' + inp('la', 30, 'ztráty levé strany') + '<span class="sep">/</span>' + inp('lb', 30, 'ztráty pravé strany');
+    return html + '</div>';
+  }
+
+  function headRow(t, lastCol) {
+    var h = '<tr><th>Čas</th><th>Blok</th>';
+    for (var j = 1; j <= t; j++) h += '<th>Stůl ' + j + '</th>';
+    return h + '<th>' + lastCol + '</th></tr>';
+  }
+
+  function row(time, label, cells, t, waiting, rule) {
+    var r = '<tr><td class="t">' + time + '</td><td class="b">' + label + (rule ? '<span class="rule">' + esc(rule) + '</span>' : '') + '</td>';
+    if (!cells.length && !(waiting && waiting.length)) {
+      return r + '<td class="free" colspan="' + (t + 1) + '"></td></tr>';
+    }
+    for (var j = 0; j < t; j++) {
+      r += cells[j] ? '<td>' + cells[j] + '</td>' : '<td class="free">volný</td>';
+    }
+    r += '<td class="wait">' + (waiting && waiting.length ? waiting.map(esc).join(', ') : '–') + '</td></tr>';
+    return r;
+  }
+
+  function stationsBlock(list, t, start, slotMin, title, singlesMode) {
+    var g = Math.min(t, Math.floor(list.length / 2));
+    var gr = groups(list, g);
+    var rows = '';
+    var rotations = singlesMode ? 1 : g;
+    for (var r = 0; r < rotations; r++) {
+      var cells = [];
+      for (var j = 0; j < g; j++) {
+        var gi = ((j - r) % g + g) % g;
+        cells[j] = pair(gr[gi]) + (singlesMode ? '' : '<span class="rule">' + esc(STATIONS[j]) + '</span>');
+      }
+      rows += row(clock(start + r * slotMin), title + (singlesMode ? '' : ', rotace ' + (r + 1)), cells, t, [], null);
+    }
+    return { rows: rows, g: g, end: start + rotations * slotMin };
+  }
+
+  function teamTraining(t) {
+    var n = R.length, html = '', rows;
+
+    var warm = stationsBlock(R, t, 0, 15, 'Rozehrání s počítáním', true);
+    var st = stationsBlock(R, t, 15, 8, 'Stanoviště', false);
+    html += '<h2>Část 1: Sólový trénink</h2>';
+    html += '<div class="wrap"><table>' + headRow(t, 'Počítá') + warm.rows + st.rows;
+    html += row(clock(st.end), 'Pauza', [], t, [], null) + '</table></div>';
+    html += '<p class="note">' + (st.g < 4 ? 'Stanoviště se střídají jen ' + st.g + ' (podle počtu stolů a hráčů). Vynechaná stanoviště zařaďte příští trénink jako první.' : 'Každá skupina projde všechna 4 stanoviště, 8 minut na každém.') + ' Kdo ve skupině zrovna nehraje, počítá.</p>';
+
+    var start = 60, sumD = 0, sumS = 0, sumW = 0;
+    rows = '';
+    ROUNDS.forEach(function (rd, k) {
+      var a = assign(rotate(R, k), t, false);
+      var cells = a.tables.map(function (m, j) { return matchCell(m, 'liga|' + (k + 1) + '|' + (j + 1), 10, true); });
+      rows += row(clock(start), 'Kolo ' + (k + 1), cells, t, a.waiting, rd.name + ', ' + rd.min + ' min');
+      if (k === 0) {
+        sumD = a.tables.filter(function (x) { return x.kind === 'dvojice'; }).length;
+        sumS = a.tables.length - sumD;
+        sumW = a.waiting.length;
+      }
+      start += rd.min + 1;
+    });
+    html += '<h2>Část 2: Zápasový trénink</h2><h3>Scénářová liga</h3>';
+    html += '<div class="wrap"><table>' + headRow(t, 'Rozhodčí / počítá') + rows + row(clock(start), 'Pauza', [], t, [], null) + '</table></div>';
+    html += '<p class="note">Každé kolo: ' + sumD + ' × dvojice' + (sumS ? ', ' + sumS + ' × singl' : '') + (sumW ? ', ' + sumW + ' rozhodčí' : ', nikdo nečeká, ztráty počítá brankář soupeře') + '. Sestavy se každé kolo posouvají o jednoho hráče, takže se střídají spoluhráči, soupeři i role rozhodčího. Skóre: levá strana : pravá strana, ztráty stejně. U scénářových startů zapisuj jen góly odehrané v kole (od startovního stavu), ne stav na stole. Ztráty čárkuj v každém kole, i bez Daně. Kolo končí dohraným legem; když dřív vyprší čas, zapíše se aktuální stav.</p>';
+
+    var half = Math.ceil(n / 2);
+    var A = R.slice(0, half), B = R.slice(half);
+    var simStart = start + 10;
+    var w1 = wave(A, B, t, null, 1);
+    var w2 = wave(w1.restA.concat(A.filter(function (p) { return w1.restA.indexOf(p) < 0; })),
+                  w1.restB.concat(B.filter(function (p) { return w1.restB.indexOf(p) < 0; })), t, w1.doubles, 2);
+    html += '<h3>Simulace ligového kola</h3>';
+    html += '<div class="wrap"><table>' + headRow(t, 'Čeká');
+    html += row(clock(simStart), '1. vlna', w1.cells, t, w1.waiting, '20 min, ligový formát');
+    html += row(clock(simStart + 20), '2. vlna', w2.cells, t, w2.waiting, '20 min, ligový formát');
+    html += row(clock(simStart + 45), 'Vyhodnocení a zápis', [], t, [], '15 min');
+    html += '</table></div>';
+    html += '<p class="note">Tým A: ' + A.map(esc).join(', ') + '. Tým B: ' + B.map(esc).join(', ') + '. Celkem ' + (w1.doubles + w2.doubles) + ' × dvojice a ' + (w1.singles + w2.singles) + ' × singl. Výsledek se zapisuje v setech (2:0 nebo 2:1), levá strana je vždy tým A.</p>';
+    if (n < 6) html += '<p class="note">Při ' + n + ' hráčích je simulace kola spíš jeden ostrý zápas. Pokud chcete trénovat víc, hrajte po 1. vlně druhý zápas se stejnými sestavami a obraťte strany.</p>';
+    return html;
+  }
+
+  function wave(A, B, t, prevDoubles, no) {
+    var ms = [], doubles = 0, singles = 0, ai = 0, bi = 0;
+    if (prevDoubles !== null) {
+      var s = Math.min(Math.max(1, Math.ceil(prevDoubles / 2)), A.length, B.length, t);
+      for (var k = 0; k < s; k++) { ms.push({ kind: 'singl', a: [A[ai++]], b: [B[bi++]] }); singles++; }
+    }
+    while (A.length - ai >= 2 && B.length - bi >= 2 && ms.length < t) {
+      ms.push({ kind: 'dvojice', a: [A[ai], A[ai + 1]], b: [B[bi], B[bi + 1]] });
+      ai += 2; bi += 2; doubles++;
+    }
+    while (A.length - ai >= 1 && B.length - bi >= 1 && ms.length < t) {
+      ms.push({ kind: 'singl', a: [A[ai++]], b: [B[bi++]] }); singles++;
+    }
+    var cells = ms.map(function (m, j) { return matchCell(m, 'sim|' + no + '|' + (j + 1), 2, false); });
+    return { cells: cells, doubles: doubles, singles: singles, restA: A.slice(ai), restB: B.slice(bi), waiting: A.slice(ai).concat(B.slice(bi)) };
+  }
+
+  function singlesTraining(t) {
+    var html = '', rows = '';
+    var warm = stationsBlock(R, t, 0, 10, 'Rozehrání: rozehrávka ze zadku', true);
+    var chain = stationsBlock(R, t, 10, 20, 'Řetězec (střídání po 10 pokusech)', true);
+    html += '<h2>Trénink jedniček</h2>';
+    html += '<div class="wrap"><table>' + headRow(t, 'Počítá') + warm.rows + chain.rows;
+    var start = 30, info = null;
+    ROUNDS.slice(0, 5).forEach(function (rd, k) {
+      var a = assign(rotate(R, k), t, true);
+      var cells = a.tables.map(function (m, j) { return matchCell(m, 'liga|' + (k + 1) + '|' + (j + 1), 10, true); });
+      rows += row(clock(start), 'Kolo ' + (k + 1), cells, t, a.waiting, rd.name + ', ' + rd.min + ' min');
+      if (k === 0) info = { s: a.tables.length, w: a.waiting.length };
+      start += rd.min + 1;
+    });
+    html += rows + row(clock(start), 'Zápis', [], t, [], '10 min') + '</table></div>';
+    html += '<p class="note">Každé kolo ' + info.s + ' × singl' + (info.w ? ', ' + info.w + ' počítá' : ', nikdo nečeká, ztráty počítá soupeř') + '. Soupeř se mění každé kolo. Skóre: levá strana : pravá strana, ztráty stejně. U startu 0:3 zapisuj jen góly odehrané v kole. Ztráty čárkuj v každém kole, i bez Daně.</p>';
+    return html;
+  }
+
+  function renderStandings() {
+    var stats = {};
+    R.forEach(function (p) { stats[p] = { legs: 0, wins: 0, gf: 0, gc: 0, loss: 0, lossLegs: 0, simM: 0, simW: 0 }; });
+    var teamA = 0, teamB = 0, simPlayed = 0, legsDone = 0, hasSim = false;
+
+    MATCHES.forEach(function (m) {
+      if (m.block === 'sim') hasSim = true;
+      var s = scores[m.id] || {};
+      var ga = num(s.ga), gb = num(s.gb);
+      if (ga === null || gb === null) return;
+      var la = num(s.la), lb = num(s.lb);
+      function add(players, gf, gc, l) {
+        players.forEach(function (p) {
+          var x = stats[p]; if (!x) return;
+          if (m.block === 'sim') { x.simM++; if (gf > gc) x.simW++; }
+          else {
+            x.legs++; x.gf += gf; x.gc += gc; if (gf > gc) x.wins++;
+            if (l !== null) { x.loss += l; x.lossLegs++; }
+          }
+        });
+      }
+      add(m.a, ga, gb, la); add(m.b, gb, ga, lb);
+      if (m.block === 'sim') { simPlayed++; if (ga > gb) teamA++; else if (gb > ga) teamB++; }
+      else legsDone++;
+    });
+
+    var list = R.map(function (p) { var x = stats[p]; x.name = p; x.diff = x.gf - x.gc; return x; });
+    list.sort(function (a, b) { return (b.diff - a.diff) || (b.wins - a.wins) || (b.gf - a.gf) || (b.simW - a.simW); });
+
+    var html = '<h2>Souhrn: kdo si jak vede</h2>';
+    if (!legsDone && !simPlayed) {
+      html += '<p class="note">Zatím žádné skóre. Zapiš výsledky u zápasů výš a pořadí se objeví tady.</p>';
+    } else {
+      if (hasSim) html += '<div class="teams">Simulace kola: tým A ' + teamA + ' : ' + teamB + ' tým B' + (simPlayed ? ' <span class="rule">odehráno ' + simPlayed + ' zápasů</span>' : '') + '</div>';
+      html += '<div class="wrap"><table><tr><th>Pořadí</th><th>Hráč</th><th>Legy</th><th>Výhry</th><th>Góly +</th><th>Góly −</th><th>Rozdíl</th><th>Ztráty / leg</th>' + (hasSim ? '<th>Simulace (výhry / zápasy)</th>' : '') + '</tr>';
+      list.forEach(function (x, i) {
+        var diffCls = x.diff > 0 ? 'n pos' : (x.diff < 0 ? 'n neg' : 'n');
+        html += '<tr><td class="n">' + (i + 1) + '.</td><td>' + esc(x.name) + '</td><td class="n">' + x.legs + '</td><td class="n">' + x.wins + '</td><td class="n">' + x.gf + '</td><td class="n">' + x.gc + '</td><td class="' + diffCls + '">' + (x.diff > 0 ? '+' : '') + x.diff + '</td><td class="n">' + (x.lossLegs ? (x.loss / x.lossLegs).toFixed(1) : '–') + '</td>' + (hasSim ? '<td class="n">' + x.simW + ' / ' + x.simM + '</td>' : '') + '</tr>';
+      });
+      html += '</table></div>';
+      html += '<p class="note">Pořadí dělá rozdíl skóre ze scénářové ligy (pravidlo Každý gól se počítá), pak výhry. Ztráty na leg se počítají jen z legů, kde byly zapsané. U scénářových startů jde do skóre jen to, co se v kole odehrálo. Při simulaci kola se počítají výhry, ne góly, protože se hraje na sety.</p>';
+    }
+    html += '<p><button type="button" class="danger" id="clear">Vymazat všechna zadaná skóre</button></p>';
+    $('standings').innerHTML = html;
+    $('clear').addEventListener('click', function () {
+      if (confirm('Opravdu smazat všechna skóre z tohoto prohlížeče?')) { scores = {}; save(); render(); }
+    });
+  }
+
+  function render() {
+    var n = parseInt($('players').value, 10);
+    var t = parseInt($('tables').value, 10);
+    $('playersOut').value = n;
+    R = roster(n);
+    MATCHES = [];
+    var mode = $('mode').value;
+    var html = '<div class="summary"><p><strong>' + n + ' hráčů, ' + t + ' stoly</strong>: ' + (mode === 'team' ? 'týmový trénink, 3 hodiny' : 'trénink jedniček, zhruba 80 minut') + '.</p>';
+    if (mode === 'single' && n > 2 * t) html += '<p>Víc hráčů než míst na stolech: ' + (n - 2 * t) + ' lidí každé kolo počítá, role se střídají.</p>';
+    if (mode === 'team' && n > 4 * t) html += '<p>Víc hráčů než míst pro dvojice na stolech, část hráčů každé kolo počítá nebo hraje singl.</p>';
+    html += '</div>';
+    html += mode === 'team' ? teamTraining(t) : singlesTraining(t);
+    $('out').innerHTML = html;
+    renderStandings();
+  }
+
+  ['players', 'tables', 'mode', 'names'].forEach(function (id) { $(id).addEventListener('input', render); });
+  $('out').addEventListener('input', function (e) {
+    var el = e.target;
+    if (!el.dataset || !el.dataset.id) return;
+    var id = el.dataset.id;
+    scores[id] = scores[id] || {};
+    scores[id][el.dataset.f] = el.value === '' ? null : num(el.value);
+    save();
+    renderStandings();
+  });
+  render();
+})();
+</script>
+</body>
+</html>

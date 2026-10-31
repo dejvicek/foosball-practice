@@ -1,0 +1,12 @@
+# Interní podklady – nesdílet
+CLAUDE.md
+PRD.md
+
+# Node / Vite
+node_modules/
+dist/
+*.local
+.DS_Store
+
+# Plány odvozené z PRD – nesdílet
+docs/superpowers/
