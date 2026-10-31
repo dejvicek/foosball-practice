@@ -1,6 +1,8 @@
 import type { Repository } from '../storage/repository';
 import { BottomNav } from './components/BottomNav';
 import { PlayersPage } from './pages/PlayersPage';
+import { TrainingPage } from './pages/TrainingPage';
+import { TrainingsPage } from './pages/TrainingsPage';
 import { useAppState } from './useAppState';
 import { useHashRoute } from './useHashRoute';
 
@@ -20,6 +22,8 @@ export function App({ repo }: { repo: Repository }) {
       </div>
     );
   else if (route.page === 'players') body = <PlayersPage store={store} />;
+  else if (route.page === 'trainings') body = <TrainingsPage store={store} navigate={navigate} />;
+  else if (route.page === 'training') body = <TrainingPage key={route.id} store={store} id={route.id} navigate={navigate} />;
   else body = <p className="note">Připravuje se.</p>;
 
   return (
