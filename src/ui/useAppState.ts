@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isEmptyScore } from '../domain/training';
 import type { MatchId, Player, PlayerId, Score, Training } from '../domain/types';
+import { isPermanent, userMessageOf } from '../storage/errors';
 import type { AppData, Repository } from '../storage/repository';
+import { newUuid } from './ids';
 
 export type Status = 'loading' | 'error' | 'ready';
 export type SaveState = 'idle' | 'saving' | 'retrying';
@@ -10,6 +12,9 @@ export interface AppStore {
   status: Status;
   data: AppData;
   saveState: SaveState;
+  /** Zpráva o zápisu, který server trvale odmítl (zahozen, data znovu načtena). */
+  saveError: string | null;
+  dismissSaveError(): void;
   reload(): void;
   savePlayer(p: Player): void;
   deletePlayer(id: PlayerId): void;
@@ -36,6 +41,7 @@ export function useAppState(repo: Repository): AppStore {
   const [data, setData] = useState<AppData>({ players: [], trainings: [] });
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [loadNonce, setLoadNonce] = useState(0);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const queue = useRef<(() => Promise<void>)[]>([]);
   const running = useRef(false);
@@ -63,21 +69,38 @@ export function useAppState(repo: Repository): AppStore {
     running.current = true;
     setSaveState('saving');
     let attempt = 0;
+    let rejected = false;
     while (queue.current.length) {
       try {
         await queue.current[0]();
         queue.current.shift();
         attempt = 0;
         setSaveState('saving');
-      } catch {
+      } catch (e) {
+        if (isPermanent(e)) {
+          // Opakování nepomůže: zápis zahodit, pokračovat a nakonec srovnat stav se serverem.
+          queue.current.shift();
+          attempt = 0;
+          rejected = true;
+          setSaveError(`Změnu se nepodařilo uložit (${userMessageOf(e)}). Zobrazuji data ze serveru.`);
+          setSaveState('saving');
+          continue;
+        }
         setSaveState('retrying');
         await sleep(RETRY_DELAYS_MS[Math.min(attempt, RETRY_DELAYS_MS.length - 1)]);
         attempt++;
       }
     }
+    if (rejected) {
+      try {
+        setData(await repo.loadAll());
+      } catch {
+        /* necháme lokální stav; další načtení to srovná */
+      }
+    }
     running.current = false;
     setSaveState('idle');
-  }, []);
+  }, [repo]);
 
   const enqueue = useCallback(
     (op: () => Promise<void>) => {
@@ -110,6 +133,7 @@ export function useAppState(repo: Repository): AppStore {
   const actions = useMemo(
     () => ({
       reload: () => setLoadNonce((n) => n + 1),
+      dismissSaveError: () => setSaveError(null),
       savePlayer: (p: Player) => {
         setData((d) => ({ ...d, players: upsert(d.players, p) }));
         enqueue(() => repo.savePlayer(p));
@@ -158,10 +182,10 @@ export function useAppState(repo: Repository): AppStore {
           }, SCORE_DEBOUNCE_MS),
         );
       },
-      newId: () => crypto.randomUUID(),
+      newId: newUuid,
     }),
     [repo, enqueue, cancelPendingScores],
   );
 
-  return { status, data, saveState, ...actions };
+  return { status, data, saveState, saveError, ...actions };
 }

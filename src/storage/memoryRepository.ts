@@ -1,4 +1,5 @@
 import { isEmptyScore } from '../domain/training';
+import { StorageError } from './errors';
 import type { AppData, Repository } from './repository';
 
 const copy = <T>(v: T): T => structuredClone(v);
@@ -6,12 +7,17 @@ const copy = <T>(v: T): T => structuredClone(v);
 /** Repozitář v paměti – pro testy a vývoj bez sítě. */
 export function memoryRepository(
   initial?: AppData,
-  opts: { failLoad?: boolean; failSaves?: number } = {},
+  opts: { failLoad?: boolean; failSaves?: number; failPermanent?: number } = {},
 ): Repository & { snapshot(): AppData } {
   let data: AppData = copy(initial ?? { players: [], trainings: [] });
   let failSaves = opts.failSaves ?? 0;
+  let failPermanent = opts.failPermanent ?? 0;
 
   const write = async (fn: () => void) => {
+    if (failPermanent > 0) {
+      failPermanent--;
+      throw new StorageError('Simulovaná trvalá chyba', true, 'server změnu odmítl');
+    }
     if (failSaves > 0) {
       failSaves--;
       throw new Error('Simulovaná chyba zápisu');

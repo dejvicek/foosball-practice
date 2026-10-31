@@ -10,12 +10,13 @@ import {
   type ScoreRow,
   type TrainingRow,
 } from './mapping';
+import { fromPostgrest } from './errors';
 import type { Repository } from './repository';
 
 const PAGE = 1000; // PostgREST vrací nejvýš 1000 řádků na dotaz
 
-function check<T>(res: { data: T | null; error: { message: string } | null }): T {
-  if (res.error) throw new Error(res.error.message);
+function check<T>(res: { data: T | null; error: { message: string; code?: string } | null; status: number }): T {
+  if (res.error) throw fromPostgrest(res.error, res.status);
   return res.data as T;
 }
 

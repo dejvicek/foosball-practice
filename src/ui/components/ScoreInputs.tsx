@@ -22,7 +22,11 @@ export function ScoreInputs({ label, score, maxGoals, withLosses, onChange }: Pr
       placeholder="–"
       aria-label={`${label}: ${title}`}
       value={show(s[field])}
-      onChange={(e) => onChange({ ...s, [field]: parseScoreValue(e.target.value) })}
+      onChange={(e) => {
+        const v = parseScoreValue(e.target.value);
+        if (v !== null && v > max) return; // překlep nad maximum se nepřijme
+        onChange({ ...s, [field]: v });
+      }}
     />
   );
   return (

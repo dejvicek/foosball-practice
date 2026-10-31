@@ -43,6 +43,14 @@ export function App({ repo }: { repo: Repository }) {
           Neuloženo – zkouším znovu
         </div>
       )}
+      {store.saveError && (
+        <div className="save-banner" role="alert">
+          {store.saveError}{' '}
+          <button type="button" className="ghost banner-ok" onClick={store.dismissSaveError}>
+            OK
+          </button>
+        </div>
+      )}
       <main className="page">{body}</main>
       <BottomNav route={route} navigate={navigate} />
     </>
