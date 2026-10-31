@@ -1,4 +1,5 @@
 import { playerHistory } from '../../domain/ladder';
+import { SOLO_METRICS } from '../../domain/solo';
 import type { UiPrefs } from '../../storage/prefs';
 import { rangeText } from '../components/RangeLabel';
 import { formatDate, todayIso } from '../dates';
@@ -22,6 +23,7 @@ export function PlayerPage({ store, id, prefs, navigate }: { store: AppStore; id
       </section>
     );
   const rows = playerHistory(store.data.trainings, id, prefs.ladderRange, today);
+  const metrics = SOLO_METRICS.filter((m) => rows.some((r) => r.solo[m.id] !== undefined));
   return (
     <section>
       {back}
@@ -41,6 +43,11 @@ export function PlayerPage({ store, id, prefs, navigate }: { store: AppStore; id
                 <th className="n">Rozdíl</th>
                 <th className="n">Ztráty / leg</th>
                 <th className="n">Simulace</th>
+                {metrics.map((m) => (
+                  <th key={m.id} className="n" title={m.what}>
+                    {m.name}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -53,6 +60,11 @@ export function PlayerPage({ store, id, prefs, navigate }: { store: AppStore; id
                   <td className={r.diff > 0 ? 'n pos' : r.diff < 0 ? 'n neg' : 'n'}>{signed(r.diff)}</td>
                   <td className="n">{r.lossPerLeg === null ? '–' : dec1(r.lossPerLeg)}</td>
                   <td className="n">{r.simM ? `${r.simW} / ${r.simM}` : '–'}</td>
+                  {metrics.map((m) => (
+                    <td key={m.id} className="n">
+                      {r.solo[m.id] === undefined ? '–' : `${r.solo[m.id]} / ${m.max}`}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>

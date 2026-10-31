@@ -96,3 +96,38 @@ describe('stránka Žebříček', () => {
     expect(await screen.findByText('V tomhle období zatím nejsou žádné zapsané legy.')).toBeInTheDocument();
   });
 });
+
+describe('žebříček stanovišť', () => {
+  const H8 = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7', 'H8'];
+  const ps: Player[] = H8.map((id, order) => ({ id, name: `Hráč ${id}`, order, archived: false }));
+  const withSolo = (id: string, date: string, a: number, b: number) => ({
+    ...training(id, date, 'team', H8, 4),
+    soloResults: { H1: { fiveBarControl: a }, H2: { fiveBarControl: b } },
+  });
+  const repo2 = () => memoryRepository({ players: ps, trainings: [withSolo('s1', '2026-10-20', 2, 5), withSolo('s2', '2026-10-25', 4, 5)] });
+
+  it('kritérium 16: Průměr „3,0 / 10“, Celkem „6 / 20“, méně ztrát je výš; volba se pamatuje', async () => {
+    const user = userEvent.setup();
+    const r = repo2();
+    const { unmount } = render(<App repo={r} />);
+    await screen.findByRole('button', { name: 'Stanoviště' });
+    await user.click(screen.getByRole('button', { name: 'Stanoviště' }));
+    const table = screen.getByRole('table', { name: 'Udržení míče na pětce' });
+    const rows = within(table).getAllByRole('row').slice(1);
+    expect(rows[0]).toHaveTextContent('Hráč H1');
+    expect(rows[0]).toHaveTextContent('3,0 / 10');
+    await user.click(screen.getByRole('button', { name: 'Celkem' }));
+    expect(within(screen.getByRole('table', { name: 'Udržení míče na pětce' })).getAllByRole('row')[1]).toHaveTextContent('6 / 20');
+    unmount();
+    render(<App repo={r} />);
+    expect(await screen.findByRole('table', { name: 'Udržení míče na pětce' })).toBeInTheDocument();
+  });
+
+  it('prázdné období', async () => {
+    const user = userEvent.setup();
+    render(<App repo={repo()} />);
+    await screen.findByRole('button', { name: 'Stanoviště' });
+    await user.click(screen.getByRole('button', { name: 'Stanoviště' }));
+    expect(screen.getByText('V tomhle období zatím nejsou žádné výsledky ze sólové části.')).toBeInTheDocument();
+  });
+});

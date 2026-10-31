@@ -1,7 +1,9 @@
 import { computeLadder, FORM_DAYS, MIN_TRAININGS, type LadderRow, type LadderView } from '../../domain/ladder';
 import { addDays } from '../../domain/dates';
 import type { PlayerId } from '../../domain/types';
-import type { UiPrefs } from '../../storage/prefs';
+import type { LadderPart, UiPrefs } from '../../storage/prefs';
+import { computeSoloLadder, type SoloLadderRow } from '../../domain/soloLadder';
+import { soloMetric } from '../../domain/solo';
 import { rangeText } from '../components/RangeLabel';
 import { todayIso } from '../dates';
 import { dec1, pct, signed } from '../format';
@@ -90,6 +92,77 @@ function LadderTable({
   );
 }
 
+function SoloTable({
+  rows,
+  view,
+  label,
+  max,
+  ranked,
+  name,
+  open,
+}: {
+  rows: SoloLadderRow[];
+  view: LadderView;
+  label: string;
+  max: number;
+  ranked: boolean;
+  name(id: PlayerId): string;
+  open(id: PlayerId): void;
+}) {
+  return (
+    <div className="wrap">
+      <table aria-label={label} className={ranked ? 'solo-table' : 'solo-table low-data'}>
+        <thead>
+          <tr>
+            <th className="n">#</th>
+            <th>Hráč</th>
+            <th className="n">Tréninky</th>
+            <th className="n">{view === 'avg' ? 'Průměr' : 'Celkem'}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={r.playerId}>
+              <td className="n">{ranked ? `${i + 1}.` : '–'}</td>
+              <td>
+                <button type="button" className="player-link" onClick={() => open(r.playerId)}>
+                  {name(r.playerId)}
+                </button>
+              </td>
+              <td className="n">{r.trainings}</td>
+              <td className="n">{view === 'avg' ? `${dec1(r.avg)} / ${max}` : `${r.sum} / ${r.sumMax}`}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function SoloLadder({ store, prefs, today, name, open }: { store: AppStore; prefs: UiPrefs; today: string; name(id: PlayerId): string; open(id: PlayerId): void }) {
+  const tables = computeSoloLadder(store.data.trainings, prefs.ladderRange, prefs.ladderView, today);
+  if (!tables.length) return <p className="note">V tomhle období zatím nejsou žádné výsledky ze sólové části.</p>;
+  return (
+    <div className="solo-grid">
+      {tables.map((t) => {
+        const def = soloMetric(t.metric);
+        return (
+          <section key={t.metric} className="solo-block">
+            <h3>{def.name}</h3>
+            <p className="note">
+              {def.what}, {def.lowerIsBetter ? 'méně je lépe' : 'víc je lépe'}
+            </p>
+            {t.ranked.length > 0 && <SoloTable rows={t.ranked} view={prefs.ladderView} label={def.name} max={def.max} ranked name={name} open={open} />}
+            {t.lowData.length > 0 && (
+              <SoloTable rows={t.lowData} view={prefs.ladderView} label={`${def.name} – málo dat`} max={def.max} ranked={false} name={name} open={open} />
+            )}
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
 export function LadderPage({ store, prefs, setPrefs, navigate }: Props) {
   const today = todayIso();
   const { ladderRange: range, ladderView: view } = prefs;
@@ -112,6 +185,15 @@ export function LadderPage({ store, prefs, setPrefs, navigate }: Props) {
   return (
     <section>
       <h1>Žebříček</h1>
+      <Seg<LadderPart>
+        label="Část"
+        value={prefs.ladderPart}
+        onChange={(v) => setPrefs({ ...prefs, ladderPart: v })}
+        options={[
+          ['matches', 'Zápasy'],
+          ['solo', 'Stanoviště'],
+        ]}
+      />
       <div>
         <Seg
           label="Období"
@@ -135,6 +217,10 @@ export function LadderPage({ store, prefs, setPrefs, navigate }: Props) {
       )}
       <p className="dateline">{rangeText(range, today)}</p>
 
+      {prefs.ladderPart === 'solo' ? (
+        <SoloLadder store={store} prefs={prefs} today={today} name={name} open={open} />
+      ) : (
+        <>
       {ranked.length === 0 && lowData.length === 0 ? (
         <p className="note">V tomhle období zatím nejsou žádné zapsané legy.</p>
       ) : (
@@ -156,6 +242,8 @@ export function LadderPage({ store, prefs, setPrefs, navigate }: Props) {
               : 'Celkem: pořadí dělá součet rozdílu skóre, pak výhry, góly a výhry v simulaci.'}{' '}
             Počítají se jen zapsané legy ze scénářové ligy a jedniček; simulace kola zvlášť.
           </p>
+        </>
+      )}
         </>
       )}
     </section>

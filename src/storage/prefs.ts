@@ -1,12 +1,15 @@
 import type { LadderRange, LadderView } from '../domain/ladder';
 
+export type LadderPart = 'matches' | 'solo';
+
 export interface UiPrefs {
   ladderRange: LadderRange;
   ladderView: LadderView;
+  ladderPart: LadderPart;
 }
 
 const KEY = 'foosball-practice.prefs.v1';
-export const defaultPrefs = (): UiPrefs => ({ ladderRange: { kind: 'form' }, ladderView: 'avg' });
+export const defaultPrefs = (): UiPrefs => ({ ladderRange: { kind: 'form' }, ladderView: 'avg', ladderPart: 'matches' });
 
 function valid(p: unknown): p is UiPrefs {
   if (!p || typeof p !== 'object') return false;
@@ -22,7 +25,8 @@ export function loadPrefs(): UiPrefs {
   try {
     const raw = localStorage.getItem(KEY);
     const p = raw ? JSON.parse(raw) : null;
-    return valid(p) ? p : defaultPrefs();
+    if (!valid(p)) return defaultPrefs();
+    return { ...p, ladderPart: p.ladderPart === 'solo' ? 'solo' : 'matches' };
   } catch {
     return defaultPrefs();
   }
